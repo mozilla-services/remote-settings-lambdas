@@ -1,7 +1,8 @@
 from kinto2xml.importer import main as importer_main
 from kinto2xml.verifier import main as verifier
 
-JSON2KINTO_ARGS = ['server', 'amo-server', 'schema-file', 'auth',
+JSON2KINTO_ARGS = ['server', 'auth', 'amo-server',
+                   'schema-file', 'no-schema',
                    'certificates-bucket', 'certificates-collection',
                    'gfx-bucket', 'gfx-collection',
                    'addons-bucket', 'addons-collection',
@@ -21,7 +22,7 @@ def json2kinto(event, context):
 
     args = []
 
-    for key, value in event.values():
+    for key, value in event.items():
         if key in JSON2KINTO_ARGS:
             args.append('--' + key)
             args.append(value)
