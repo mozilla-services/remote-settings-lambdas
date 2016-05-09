@@ -1,3 +1,4 @@
+from __future__ import print_function
 from kinto2xml.importer import main as importer_main
 from kinto2xml.verifier import main as verifier
 
@@ -27,6 +28,7 @@ def json2kinto(event, context):
             args.append('--' + key)
             args.append(value)
 
+    print("importer args", args)
     importer_main(args)
 
 
@@ -35,6 +37,7 @@ def xmlverifier(event, context):
     are equals.
 
     """
+    print("verifier args", event)
     response = verifier([event['local'], event['remote']])
     if response != 0:
         raise Exception("There is a difference between: %r and %r" % (
