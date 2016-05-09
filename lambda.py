@@ -1,4 +1,5 @@
-from kinto2xml.importer import main as importer
+from kinto2xml.importer import main as importer_main
+from kinto2xml.verifier import main as verifier
 
 JSON2KINTO_ARGS = ['server', 'amo-server', 'schema-file', 'auth',
                    'certificates-bucket', 'certificates-collection',
@@ -8,7 +9,7 @@ JSON2KINTO_ARGS = ['server', 'amo-server', 'schema-file', 'auth',
                    'certificates', 'gfx', 'addons', 'plugins']
 
 
-def main(event, context):
+def json2kinto(event, context):
     """Event will contain the json2kinto parameters:
          - server: The kinto server to write data to.
                    (i.e: https://addons.mozilla.org/)
@@ -25,4 +26,15 @@ def main(event, context):
             args.append('--' + key)
             args.append(value)
 
-    importer(args)
+    importer_main(args)
+
+
+def xmlverifier(event, context):
+    """xmlverifier takes local and remote parameter and validate that both
+    are equals.
+
+    """
+    response = verifier([event['local'], event['remote']])
+    if response != 0:
+        raise Exception("There is a difference between: %r and %r" % (
+            event['local'], event['remote']))
