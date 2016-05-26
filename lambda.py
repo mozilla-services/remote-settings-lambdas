@@ -1,6 +1,6 @@
 from __future__ import print_function
-from kinto2xml.importer import main as importer_main
-from kinto2xml.verifier import main as verifier
+from amo2kinto.importer import main as importer_main
+from amo2kinto.verifier import main as verifier
 
 JSON2KINTO_ARGS = ['server', 'auth', 'amo-server',
                    'schema-file', 'no-schema',
@@ -14,7 +14,7 @@ JSON2KINTO_ARGS = ['server', 'auth', 'amo-server',
 def json2kinto(event, context):
     """Event will contain the json2kinto parameters:
          - server: The kinto server to write data to.
-                   (i.e: https://addons.mozilla.org/)
+                   (i.e: https://kinto-writer.services.mozilla.com/)
          - amo-server: The amo server to read blocklists data from.
                        (i.e: https://addons.mozilla.org/)
          - schema: The JSON schema collection file to read schema from.
