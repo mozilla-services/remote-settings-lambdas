@@ -2,7 +2,7 @@ from __future__ import print_function
 from amo2kinto.importer import main as importer_main
 from amo2kinto.verifier import main as verifier
 
-JSON2KINTO_ARGS = ['server', 'auth', 'amo-server',
+JSON2KINTO_ARGS = ['server', 'auth', 'addons-server',
                    'schema-file', 'no-schema',
                    'certificates-bucket', 'certificates-collection',
                    'gfx-bucket', 'gfx-collection',
@@ -39,6 +39,6 @@ def xmlverifier(event, context):
     """
     print("verifier args", event)
     response = verifier([event['local'], event['remote']])
-    if response != 0:
+    if response:
         raise Exception("There is a difference between: %r and %r" % (
             event['local'], event['remote']))
