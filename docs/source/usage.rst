@@ -19,9 +19,11 @@ How to build the last version of the zip?
 -----------------------------------------
 
 .. note::
-   You need to run this project from a ``x86_64`` linux image.
+   You need to run this project on a ``x86_64`` linux architecture. 
+   
+   It's highly recommended to use Lambda's execution environment and work within a Lambda AMI. 
+   See http://docs.aws.amazon.com/lambda/latest/dg/current-supported-versions.html
 
-   It can be your own computer or a docker image.
 
 To build the zip run: ``make zip``
 
