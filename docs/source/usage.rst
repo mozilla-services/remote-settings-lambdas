@@ -7,11 +7,11 @@ How to use this project?
 1. Build a zip or use `the one from the last release <https://github.com/mozilla-services/amo2kinto-lambda/releases>`_
 2. Upload the zip in a S3 bucket
 3. Copy the S3 zip URL
-4. Create a ``json2kinto`` Amazon Lambda function and paste the S3 zip URL.
-5. Create a ``xml-verifier`` Amazon Lambda function and paste the S3 zip URL.
-6. Configure a Cloud Watch alert that sends email in case of error.
+4. Create a ``json2kinto`` Amazon Lambda function and paste the S3 zip URL
+5. Create a ``xml-verifier`` Amazon Lambda function and paste the S3 zip URL
+6. Configure a Cloud Watch alert that sends an email in case of error
 7. Configure a Cloud Watch schedule tasks that run ``json2kinto`` every 30 minutes
-8. Wait for json2kinto to run once.
+8. Wait for json2kinto to run once
 9. Configure a Cloud Watch schedule tasks that run ``xml-verifier`` every 30 minutes
 
 
@@ -34,16 +34,17 @@ How to create the ``json2kinto`` function on Amazon Lambda?
 -----------------------------------------------------------
 
 1. `Log into the Amazon Web Service console. <https://console.aws.amazon.com/lambda/home>`_
-2. Click the **Create a Lambda Function** button.
+2. Click the **Create a Lambda Function** button
 3. Skip the blueprint
 4. Configure the function: **name**, **description**
-5. Select **Python 2.7** runtime.
+5. Select **Python 2.7** runtime
 6. Select **Upload a file from Amazon S3**
-7. Enter your S3 ``lambda.zip`` URL.
+7. Enter the S3 URL where the ``lambda.zip`` was uploaded
 8. Use **lambda.json2kinto** handler
 9. Set a **Basic Execution Role**
-10. Configure a 5 minutes timeout.
-11. Configure the VPC in order to give network access to the ``kinto-writer``.
+10. Configure a 5 minutes timeout
+11. Configure the Virtual Private Cloud (VPC) in order to give network access to
+    the destination Kinto instance (e.g ``kinto-writer``)
 
 .. image:: images/json2kinto-setup.png
     :align: center
@@ -88,9 +89,9 @@ Here are the available options:
                       [--plugins-bucket PLUGINS_BUCKET]
                       [--plugins-collection PLUGINS_COLLECTION] [-C] [-G] [-A]
                       [-P] [--addons-server ADDONS_SERVER]
-    
+
     Import the blocklists from the addons server into Kinto.
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -s SERVER, --server SERVER
@@ -131,16 +132,16 @@ How to create the ``xml-verifier`` function on Amazon Lambda?
 -------------------------------------------------------------
 
 1. `Log into the Amazon Web Service console. <https://console.aws.amazon.com/lambda/home>`_
-2. Click the **Create a Lambda Function** button.
+2. Click the **Create a Lambda Function** button
 3. Skip the blueprint
 4. Configure the function: **name**, **description**
-5. Select **Python 2.7** runtime.
+5. Select **Python 2.7** runtime
 6. Select **Upload a file from Amazon S3**
-7. Enter your S3 ``lambda.zip`` URL.
+7. Enter your S3 ``lambda.zip`` URL
 8. Use **lambda.xmlverifier** handler
 9. Set a **Basic Execution Role**
-10. Configure a 5 minutes timeout.
-11. You can proceed without a VPC.
+10. Configure a 5 minutes timeout
+11. You can proceed without a VPC
 
 .. image:: images/xmlverifier-setup.png
     :align: center
@@ -160,8 +161,8 @@ You will then be able to enter a **Input test event** as a JSON.
     :align: center
 
 The ``xml-verifier`` let you define two input: ``local`` and
-``remote``, you should configure the kinto XML url in ``local`` and
-the AMO XML url in ``remote``:
+``remote``, you should configure the XML URL from Kinto in ``local`` and
+the XML URL from Addons Server in ``remote``:
 
 .. code-block:: json
 
