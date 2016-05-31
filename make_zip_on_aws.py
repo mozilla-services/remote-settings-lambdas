@@ -62,6 +62,7 @@ while not connected:
                        key_filename=os.path.expanduser("~/.ssh/loads.pem"))
     except NoValidConnectionsError:
         print("\rSSH connection not yet available", end="")
+        sys.stdout.flush()
         time.sleep(10)
         pass
     else:

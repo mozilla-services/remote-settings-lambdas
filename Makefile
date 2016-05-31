@@ -3,7 +3,7 @@ SPHINX_BUILDDIR = docs/build
 AMO_BLOCKLIST_UI_SCHEMA = "https://raw.githubusercontent.com/mozilla-services/amo-blocklist-ui/master/amo-blocklist.json"
 
 clean:
-	rm -fr venv lambda.zip
+	rm -fr venv lambda.zip ami-built-lambda.zip
 
 virtualenv:
 	virtualenv venv
