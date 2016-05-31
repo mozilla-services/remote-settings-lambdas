@@ -64,7 +64,6 @@ while not connected:
         print("\rSSH connection not yet available", end="")
         sys.stdout.flush()
         time.sleep(10)
-        pass
     else:
         print()
         connected = True
