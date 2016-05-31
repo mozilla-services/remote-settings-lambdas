@@ -2,3 +2,4 @@ venv/
 *.zip
 *.pyc
 __pycache__/
+docs/build/
