@@ -17,7 +17,7 @@ update-schemas:
 	wget -O schemas.json $(AMO_BLOCKLIST_UI_SCHEMA)
 
 docs: virtualenv
-	venv/bin/pip install Sphinx
+	venv/bin/pip install -r docs/requirements.txt
 	venv/bin/sphinx-build -a -n -b html -d $(SPHINX_BUILDDIR)/doctrees docs/source $(SPHINX_BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(SPHINX_BUILDDIR)/html/index.html"

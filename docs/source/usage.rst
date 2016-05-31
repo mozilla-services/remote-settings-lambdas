@@ -77,7 +77,7 @@ The ``schema-file`` is the one present in the ``lambda.zip`` file.
 
 Here are the available options:
 
-.. code-block::
+.. code-block::shell
 
    usage: json2kinto [-h] [-s SERVER] [-a AUTH] [-v] [-q] [-D] [-S SCHEMA_FILE]
                       [--no-schema] [--certificates-bucket CERTIFICATES_BUCKET]
@@ -128,7 +128,7 @@ Here are the available options:
 
 
 How to create the ``xml-verifier`` function on Amazon Lambda?
------------------------------------------------------------
+-------------------------------------------------------------
 
 1. `Log into the Amazon Web Service console. <https://console.aws.amazon.com/lambda/home>`_
 2. Click the **Create a Lambda Function** button.
