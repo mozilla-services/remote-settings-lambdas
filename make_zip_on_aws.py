@@ -13,7 +13,6 @@ from paramiko.ssh_exception import NoValidConnectionsError
 AWS_REGION = "us-west-2"
 AMI_ID = "ami-f0091d91"
 KEY_PAIR = "loads"
-SECURITY_GROUP = "loads"
 INSTANCE_TYPE = "t2.micro"
 INSTANCE_NAME = "amo2kinto-lambda-zip-builder"
 INSTANCE_PROJECT = "amo2kinto-lambda"
@@ -27,7 +26,6 @@ print("Starting an new instance of %s" % AMI_ID)
 reservations = conn.run_instances(AMI_ID,
                                   min_count=1, max_count=1,
                                   key_name=KEY_PAIR,
-                                  security_groups=[SECURITY_GROUP],
                                   instance_type=INSTANCE_TYPE)
 
 instance = reservations.instances[0]
