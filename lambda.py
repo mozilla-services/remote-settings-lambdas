@@ -1,9 +1,16 @@
 from __future__ import print_function
+import os
+
+import boto3
+import boto3.session
+from botocore.exceptions import ClientError
+
 from tempfile import mkdtemp
 
 from amo2kinto.generator import main as generator_main
 from amo2kinto.importer import main as importer_main
 from amo2kinto.verifier import main as verifier
+
 
 JSON2KINTO_ARGS = ['server', 'auth', 'addons-server', 'schema-file', 'no-schema',
                    'certificates-bucket', 'certificates-collection',
@@ -60,20 +67,42 @@ def blockpages_generator(event, context):
     """
 
     args = []
-    s3uri = None
+    kwargs = {}
 
     for key, value in event.items():
         if key in BLOCKPAGES_ARGS:
             args.append('--' + key)
             args.append(value)
-        elif key.lower() == 's3uri':
-            s3uri = value
+        elif key.lower() in ('aws_region', 'bucket_name'):
+            kwargs[key.lower()] = value
 
+    target_dir = mkdtemp()
     args.append('--target-dir')
-    args.append(mkdtemp())
-    # if not s3uri:
-    #     raise Exception('S3URI mandatory')
+    args.append(target_dir)
 
     print("Blocked pages generator args", args)
     generator_main(args)
-    # sync_target_with_s3(os.path.abspath('results'), s3uri)
+    sync_to_s3(target_dir, **kwargs)
+
+
+AWS_REGION = "eu-central-1"
+BUCKET_NAME = "amo-blocked-pages"
+
+
+def sync_to_s3(target_dir, aws_region=AWS_REGION, bucket_name=BUCKET_NAME):
+    if not os.path.isdir(target_dir):
+        raise ValueError('target_dir %r not found.' % target_dir)
+
+    s3 = boto3.resource('s3', region_name=aws_region)
+    try:
+        s3.create_bucket(Bucket=bucket_name,
+                         CreateBucketConfiguration={'LocationConstraint': aws_region})
+    except ClientError:
+        pass
+
+    for filename in os.listdir(target_dir):
+        print('Uploading %s to Amazon S3 bucket %s' % (filename, bucket_name))
+        s3.Object(bucket_name, filename).put(Body=open(os.path.join(target_dir, filename), 'rb'))
+
+        print('File uploaded to https://s3.%s.amazonaws.com/%s/%s' % (
+            aws_region, bucket_name, filename))
