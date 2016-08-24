@@ -76,12 +76,14 @@ def blockpages_generator(event, context):
         elif key.lower() in ('aws_region', 'bucket_name'):
             kwargs[key.lower()] = value
 
+    # In lambda we can only write in the temporary filesystem.
     target_dir = mkdtemp()
     args.append('--target-dir')
     args.append(target_dir)
 
     print("Blocked pages generator args", args)
     generator_main(args)
+    print("Send results to s3", args)
     sync_to_s3(target_dir, **kwargs)
 
 
