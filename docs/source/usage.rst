@@ -206,19 +206,19 @@ You will then be able to enter a **Input test event** as a JSON.
     :align: center
 
 
-This function read data from kinto and write them to a s3 bucket.
+This function reads data from kinto and write it to a S3 bucket.
 
 The ``blockpages-generator`` let you define the following inputs:
 
 Settings related to the Kinto server
 ------------------------------------
 
-- **server**: The Kinto server to read the blocklists data from.
-- **bucket**: The Kinto bucket where the blocklist are stored. default: *blocklists*
+- **server**: The Kinto server to read blocklists data from.
+- **bucket**: The Kinto bucket where blocklists are stored. default: *blocklists*
 - **addons-collection**: The Kinto addons collection name. default: *addons*
 - **plugins-collection**: The Kinto plugins collection name. default: *plugins*
 
-If ommited the parameters will take their default value.
+If omitted the parameters will take their default value.
 
 Settings related to the S3 bucket
 ---------------------------------
