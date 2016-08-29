@@ -58,9 +58,10 @@ BLOCKPAGES_ARGS = ['server', 'bucket', 'addons-collection', 'plugins-collection'
 
 def blockpages_generator(event, context):
     """Event will contain the blockpages_generator parameters:
-         - server: The kinto server to write data to.
+         - server: The kinto server to read data from.
                    (i.e: https://kinto-writer.services.mozilla.com/)
-         - s3bucket: S3 bucket to sync the files too.
+         - aws_region: S3 bucket AWS Region.
+         - bucket_name: S3 bucket name.
          - bucket: The readonly public and signed bucket.
          - addons-collection: The add-ons collection name.
          - plugins-collection: The plugin collection name.
