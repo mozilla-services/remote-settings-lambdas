@@ -105,7 +105,8 @@ def sync_to_s3(target_dir, aws_region=AWS_REGION, bucket_name=BUCKET_NAME):
 
     for filename in os.listdir(target_dir):
         print('Uploading %s to Amazon S3 bucket %s' % (filename, bucket_name))
-        s3.Object(bucket_name, filename).put(Body=open(os.path.join(target_dir, filename), 'rb'))
+        s3.Object(bucket_name, filename).put(Body=open(os.path.join(target_dir, filename), 'rb'),
+                                             ContentType='text/html')
 
         print('File uploaded to https://s3.%s.amazonaws.com/%s/%s' % (
             aws_region, bucket_name, filename))
