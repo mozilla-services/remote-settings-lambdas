@@ -2,10 +2,15 @@ from __future__ import print_function
 
 import boto3
 import boto3.session
+import os
 
 AWS_REGION = "eu-central-1"
 BUCKET_NAME = "amo2kinto"
+
 FILENAME = "ami-built-lambda.zip"
+
+if not os.path.exists(FILENAME):
+    FILENAME = 'lambda.zip'
 
 s3 = boto3.resource('s3', region_name=AWS_REGION)
 try:
