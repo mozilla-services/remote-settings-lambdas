@@ -43,12 +43,15 @@ def json2kinto(event, context):
         if value is not None:
             args[arg] = value
 
+    # Deduplicate keys that might also be present in the event.
     for key, value in event.items():
         if key in JSON2KINTO_ARGS:
             args['--%s' % key] = value
 
-    flatten_args = list(reduce(lambda x, y: x + y, args.items()))
-    # Remove password from there
+    # Convert the dict as a list of argv
+    flatten_args = sum(args.items(), ())
+
+    # Remove password from there when writting the args.
     print("importer args", list(reduce(lambda x, y: x + y,
                                        [x for x in args.items()
                                         if x[0] not in JSON2KINTO_ENV_VARIABLES.values()])))
