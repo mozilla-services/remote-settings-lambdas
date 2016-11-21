@@ -80,6 +80,12 @@ stdin, stdout, stderr = client.exec_command(
 print(stdout.read())
 print(stderr.read(), file=sys.stderr)
 
+# 6.1 Upgrade virtualenv
+stdin, stdout, stderr = client.exec_command(
+    'sudo pip install -U virtualenv pip',  get_pty=True)
+print(stdout.read())
+print(stderr.read(), file=sys.stderr)
+
 # 7. Clone amo2kinto-lambda
 print("Cloning git repository...")
 stdin, stdout, stderr = client.exec_command(
