@@ -12,12 +12,17 @@ from amo2kinto.importer import main as importer_main
 from amo2kinto.verifier import main as verifier
 
 
-JSON2KINTO_ARGS = ['server', 'auth', 'addons-server', 'schema-file', 'no-schema',
+JSON2KINTO_ARGS = ['server', 'auth', 'editor-auth', 'reviewer-auth',
+                   'addons-server', 'schema-file', 'no-schema',
                    'certificates-bucket', 'certificates-collection',
                    'gfx-bucket', 'gfx-collection',
                    'addons-bucket', 'addons-collection',
                    'plugins-bucket', 'plugins-collection',
                    'certificates', 'gfx', 'addons', 'plugins']
+
+JSON2KINTO_ENV_VARIABLES = {'JSON2KINTO_AUTH': '--auth',
+                            'JSON2KINTO_EDITOR_AUTH': '--editor-auth',
+                            'JSON2KINTO_REVIEWER_AUTH': '--reviewer-auth'}
 
 
 def json2kinto(event, context):
@@ -30,15 +35,27 @@ def json2kinto(event, context):
                    (i.e: schemas.json)
     """
 
-    args = []
+    args = {}
 
+    # Upgrade by reading some ENV variables
+    for key, arg in JSON2KINTO_ENV_VARIABLES.items():
+        value = os.getenv(key)
+        if value is not None:
+            args[arg] = value
+
+    # Deduplicate keys that might also be present in the event.
     for key, value in event.items():
         if key in JSON2KINTO_ARGS:
-            args.append('--' + key)
-            args.append(value)
+            args['--%s' % key] = value
 
-    print("importer args", args)
-    importer_main(args)
+    # Convert the dict as a list of argv
+    flatten_args = sum(args.items(), ())
+
+    # Remove password from there when writting the args.
+    print("importer args", list(reduce(lambda x, y: x + y,
+                                       [x for x in args.items()
+                                        if x[0] not in JSON2KINTO_ENV_VARIABLES.values()])))
+    importer_main(flatten_args)
 
 
 def xmlverifier(event, context):
