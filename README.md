@@ -2,7 +2,7 @@
 
 Use this script to generate a zip for Amazon Lambda:
 
-    make clean virtualenv zip
+    make clean virtualenv zip upload-to-s3
 
 Or if you want to build it on a Lambda instance:
 
