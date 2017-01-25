@@ -1,8 +1,8 @@
 Usage
 =====
 
-How to use this project?
-------------------------
+How do I use this project?
+--------------------------
 
 1. Build a zip or use `the one from the last release <https://github.com/mozilla-services/amo2kinto-lambda/releases>`_
 2. Upload the zip in a S3 bucket
@@ -15,8 +15,8 @@ How to use this project?
 9. Configure a Cloud Watch schedule tasks that run ``xml-verifier`` every 30 minutes
 
 
-How to build the last version of the zip?
------------------------------------------
+How do I build the last version of the zip?
+-------------------------------------------
 
 .. note::
    You need to run this project on a ``x86_64`` linux architecture. 
@@ -32,8 +32,8 @@ It will create a ``lambda.zip`` file ready to use.
 You can upload it in a S3 bucket to then access it from Amazon Lambda.
 
 
-How to create the ``json2kinto`` function on Amazon Lambda?
------------------------------------------------------------
+How do I create the ``json2kinto`` function on Amazon Lambda?
+-------------------------------------------------------------
 
 1. `Log into the Amazon Web Service console. <https://console.aws.amazon.com/lambda/home>`_
 2. Click the **Create a Lambda Function** button
@@ -52,8 +52,8 @@ How to create the ``json2kinto`` function on Amazon Lambda?
     :align: center
 
 
-How to run the ``json2kinto`` function on Amazon Lambda?
---------------------------------------------------------
+How do I run the ``json2kinto`` function on Amazon Lambda?
+----------------------------------------------------------
 
 Once your function has been configured, you can run it.
 
@@ -130,8 +130,8 @@ Here are the available options:
 
 
 
-How to create the ``xml-verifier`` function on Amazon Lambda?
--------------------------------------------------------------
+How do I create the ``xml-verifier`` function on Amazon Lambda?
+---------------------------------------------------------------
 
 1. `Log into the Amazon Web Service console. <https://console.aws.amazon.com/lambda/home>`_
 2. Click the **Create a Lambda Function** button
@@ -149,8 +149,8 @@ How to create the ``xml-verifier`` function on Amazon Lambda?
     :align: center
 
 
-How to run the ``xml-verifier`` function on Amazon Lambda?
-----------------------------------------------------------
+How do I run the ``xml-verifier`` function on Amazon Lambda?
+------------------------------------------------------------
 
 Once your function has been configured, you can run it.
 
@@ -173,8 +173,8 @@ the XML URL from Addons Server in ``remote``:
       "remote": "https://blocklist.addons.mozilla.org/blocklist/3/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/46.0/"
     }
 
-How to create the ``blockpages-generator`` function on Amazon Lambda?
----------------------------------------------------------------------
+How do I create the ``blockpages-generator`` function on Amazon Lambda?
+-----------------------------------------------------------------------
 
 1. `Log into the Amazon Web Service console. <https://console.aws.amazon.com/lambda/home>`_
 2. Click the **Create a Lambda Function** button
@@ -192,8 +192,8 @@ How to create the ``blockpages-generator`` function on Amazon Lambda?
     :align: center
 
 
-How to run the ``blockpages-generator`` function on Amazon Lambda?
-------------------------------------------------------------------
+How do I run the ``blockpages-generator`` function on Amazon Lambda?
+--------------------------------------------------------------------
 
 Once your function has been configured, you can run it.
 
@@ -234,8 +234,8 @@ Settings related to the S3 bucket
       "bucket_name": "amo-blocked-pages"
     }
 
-How to create the ``validate_signature`` function on Amazon Lambda?
--------------------------------------------------------------------
+How do I create the ``validate_signature`` function on Amazon Lambda?
+---------------------------------------------------------------------
 
 1. `Log into the Amazon Web Service console. <https://console.aws.amazon.com/lambda/home>`_
 2. Click the **Create a Lambda Function** button
@@ -252,8 +252,8 @@ How to create the ``validate_signature`` function on Amazon Lambda?
 .. image:: images/validate_signature_configuration.png
     :align: center
 
-How to run the ``validate_signature`` function on Amazon Lambda?
-----------------------------------------------------------------
+How do I run the ``validate_signature`` function on Amazon Lambda?
+------------------------------------------------------------------
 
 Once your function has been configured, you can run it.
 
@@ -261,10 +261,6 @@ To do that, select the function and in the **Actions** menu select
 **Configure Test event**.
 
 You will then be able to enter a **Input test event** as a JSON.
-
-.. image:: images/validate_signature_test_event.png
-    :align: center
-
 
 This function reads the content and signature of a collection and
 validate the signature is valid.

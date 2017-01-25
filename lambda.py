@@ -117,17 +117,17 @@ def validate_signature(event, context):
         signature = dest_col['data']['signature']
 
         # 6. Grab the public key
-        f = tempfile.NamedTemporaryFile(delete=False)
-        f.write(signature['public_key'])
-        f.close()
-
-        # 7. Verify the signature matches the hash
-        signer = ECDSASigner(public_key=f.name)
         try:
+            f = tempfile.NamedTemporaryFile(delete=False)
+            f.write(signature['public_key'])
+            f.close()
+
+            # 7. Verify the signature matches the hash
+            signer = ECDSASigner(public_key=f.name)
             signer.verify(serialized, signature)
             print('Signature OK')
         except Exception:
-            print('Signature KO. Computed hash: %s' % computed_hash)
+            print('Signature KO. Computed hash: `{}`'.format(computed_hash))
             raise
         finally:
             os.unlink(f.name)
