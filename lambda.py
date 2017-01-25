@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import tempfile
 
 import boto3
 import boto3.session
@@ -10,6 +11,11 @@ from tempfile import mkdtemp
 from amo2kinto.generator import main as generator_main
 from amo2kinto.importer import main as importer_main
 from amo2kinto.verifier import main as verifier
+
+from kinto_http import Client
+from kinto_signer.serializer import canonical_json
+from kinto_signer.hasher import compute_hash
+from kinto_signer.signer.local_ecdsa import ECDSASigner
 
 
 JSON2KINTO_ARGS = ['server', 'auth', 'editor-auth', 'reviewer-auth',
@@ -68,6 +74,63 @@ def xmlverifier(event, context):
     if response:
         raise Exception("There is a difference between: %r and %r" % (
             event['local'], event['remote']))
+
+
+DEFAULT_COLLECTIONS = [
+    {'bucket': 'blocklists',
+     'collection': 'certificates'},
+    {'bucket': 'blocklists',
+     'collection': 'addons'},
+    {'bucket': 'blocklists',
+     'collection': 'plugins'},
+    {'bucket': 'blocklists',
+     'collection': 'gfx'},
+    {'bucket': 'pinning',
+     'collection': 'pins'}
+]
+
+
+def validate_signature(event, context):
+    server_url = event['server']
+    collections = event.get('collections', DEFAULT_COLLECTIONS)
+
+    for collection in collections:
+        client = Client(server_url=server_url,
+                        bucket=collection['bucket'],
+                        collection=collection['collection'])
+        print('Looking at %s: ' % client.get_endpoint('collection'), end='')
+
+        # 1. Grab collection information
+        dest_col = client.get_collection()
+
+        # 2. Grab records
+        records = client.get_records(_sort='-last_modified')
+        timestamp = client.get_records_timestamp()
+
+        # 3. Serialize
+        serialized = canonical_json(records, timestamp)
+
+        # 4. Compute hash
+        computed_hash = compute_hash(serialized)
+
+        # 5. Grab the signature
+        signature = dest_col['data']['signature']
+
+        # 6. Grab the public key
+        try:
+            f = tempfile.NamedTemporaryFile(delete=False)
+            f.write(signature['public_key'])
+            f.close()
+
+            # 7. Verify the signature matches the hash
+            signer = ECDSASigner(public_key=f.name)
+            signer.verify(serialized, signature)
+            print('Signature OK')
+        except Exception:
+            print('Signature KO. Computed hash: `{}`'.format(computed_hash))
+            raise
+        finally:
+            os.unlink(f.name)
 
 
 BLOCKPAGES_ARGS = ['server', 'bucket', 'addons-collection', 'plugins-collection']
