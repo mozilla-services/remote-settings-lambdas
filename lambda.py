@@ -1,4 +1,5 @@
 from __future__ import print_function
+from datetime import datetime
 import os
 import tempfile
 
@@ -131,6 +132,40 @@ def validate_signature(event, context):
             raise
         finally:
             os.unlink(f.name)
+
+
+def timestamp_to_date(timestamp_milliseconds):
+    timestamp_seconds = int(timestamp_milliseconds) / 1000
+    return datetime.utcfromtimestamp(timestamp_seconds).strftime('%Y-%m-%d %H:%M:%S UTC')
+
+
+def refresh_signature(event, context):
+    server_url = event['server']
+    collections = event.get('collections', DEFAULT_COLLECTIONS)
+    auth = tuple(os.getenv("REFRESH_SIGNATURE_AUTH").split(':', 1))
+
+    for collection in collections:
+        client = Client(server_url=server_url,
+                        bucket=collection['bucket'],
+                        collection=collection['collection'],
+                        auth=auth)
+        print('Looking at %s:' % client.get_endpoint('collection'), end=' ')
+
+        # 1. Grab collection information
+        collection_metadata = client.get_collection()['data']
+        last_modified = collection_metadata['last_modified']
+
+        # 2. If status is signed
+        if collection_metadata['status'] == 'signed':
+
+            # 2.1. Trigger a signature
+            print('Trigger new signature: ', end='')
+            new_metadata = client.patch_collection(data={'status': 'to-sign'})
+            last_modified = new_metadata['data']['last_modified']
+
+        # 3. Display the status of the collection
+        print(collection_metadata['status'],
+              'at', timestamp_to_date(last_modified), '(', last_modified, ')')
 
 
 BLOCKPAGES_ARGS = ['server', 'bucket', 'addons-collection', 'plugins-collection']
