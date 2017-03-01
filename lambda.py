@@ -1,10 +1,9 @@
 from __future__ import print_function
-from datetime import datetime
 import codecs
 import json
 import os
 import tempfile
-from functools import partial
+from datetime import datetime
 
 import boto3
 import boto3.session
