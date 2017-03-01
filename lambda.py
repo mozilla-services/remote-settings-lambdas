@@ -93,6 +93,7 @@ DEFAULT_COLLECTIONS = [
 def validate_signature(event, context):
     server_url = event['server']
     collections = event.get('collections', DEFAULT_COLLECTIONS)
+    exception = None
 
     for collection in collections:
         client = Client(server_url=server_url,
@@ -126,11 +127,18 @@ def validate_signature(event, context):
             signer = ECDSASigner(public_key=f.name)
             signer.verify(serialized, signature)
             print('Signature OK')
-        except Exception:
-            print('Signature KO. Computed hash: `{}`'.format(computed_hash))
-            raise
+        except Exception as e:
+            exception = e
+            print('Signature KO.')
+            print(' - Computed hash: `{}`'.format(computed_hash))
+            print(' - Collection timestamp: `{}`'.format(timestamp))
+            print(' - Serialized content: `{}`'.format(serialized))
         finally:
             os.unlink(f.name)
+
+    # Make the lambda to fail in case an exception occured
+    if exception is not None:
+        raise exception
 
 
 BLOCKPAGES_ARGS = ['server', 'bucket', 'addons-collection', 'plugins-collection']
