@@ -6,7 +6,7 @@ clean:
 	rm -fr venv lambda.zip ami-built-lambda.zip
 
 virtualenv:
-	virtualenv --no-site-packages venv
+	virtualenv venv --python=python2.7
 	venv/bin/pip install -r requirements.pip
 
 zip: clean virtualenv
