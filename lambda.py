@@ -1,7 +1,10 @@
 from __future__ import print_function
 from datetime import datetime
+import codecs
+import json
 import os
 import tempfile
+from functools import partial
 
 import boto3
 import boto3.session
@@ -11,6 +14,7 @@ from tempfile import mkdtemp
 
 from amo2kinto.generator import main as generator_main
 from amo2kinto.importer import main as importer_main
+from amo2kinto.kinto import update_schema_if_mandatory
 from amo2kinto.verifier import main as verifier
 
 from kinto_http import Client
@@ -166,6 +170,51 @@ def refresh_signature(event, context):
         # 3. Display the status of the collection
         print(collection_metadata['status'],
               'at', timestamp_to_date(last_modified), '(', last_modified, ')')
+
+
+SCHEMA_COLLECTIONS = [
+    {'bucket': 'staging',
+     'collection': 'certificates'},
+    {'bucket': 'staging',
+     'collection': 'addons'},
+    {'bucket': 'staging',
+     'collection': 'plugins'},
+    {'bucket': 'staging',
+     'collection': 'gfx'}
+]
+
+
+def schema_updater(event, context):
+    """Event will contain the json2kinto parameters:
+         - server: The kinto server to write data to.
+                   (i.e: https://kinto-writer.services.mozilla.com/)
+    """
+    server_url = event['server']
+    auth = tuple(os.getenv('AUTH').split(':', 1))
+
+    collections = event.get('collections', SCHEMA_COLLECTIONS)
+
+    # Open the file
+    with codecs.open("schemas.json", 'r', encoding='utf-8') as f:
+        schemas = json.load(f)['collections']
+
+    # Check all collections
+    for collection in collections:
+        client = Client(server_url=server_url,
+                        bucket=collection['bucket'],
+                        collection=collection['collection'],
+                        auth=auth)
+        print('Checking at %s: ' % client.get_endpoint('collection'), end='')
+
+        # 1. Grab collection information
+        dest_col = client.get_collection()
+
+        # 2. Collection schema
+        collection_type = collection['collection']
+        config = schemas[collection_type]['config']
+
+        update_schema_if_mandatory(dest_col, config, client.patch_collection)
+        print('OK')
 
 
 BLOCKPAGES_ARGS = ['server', 'bucket', 'addons-collection', 'plugins-collection']
