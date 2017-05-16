@@ -85,6 +85,34 @@ def validate_signature(event, context):
         raise exception
 
 
+def validate_changes_collection(event, context):
+    # 1. Grab the changes collection
+    server_url = event['server']
+    bucket = event.get('bucket', "monitor")
+    collection = event.get('collection', "changes")
+    client = Client(server_url=server_url,
+                    bucket=bucket,
+                    collection=collection)
+    print('Looking at %s: ' % client.get_endpoint('collection'))
+
+    collections = client.get_records()
+    # 2. For each collection there, validate the ETag
+    everything_ok = True
+    for collection in collections:
+        bid = collection["bucket"]
+        cid = collection["collection"]
+        last_modified = collection["last_modified"]
+        etag = client.get_records_timestamp(bucket=bid, collection=cid)
+        if str(etag) == str(last_modified):
+            print("Etag OK for {}/{} : {}".format(bid, cid, etag))
+        else:
+            everything_ok = False
+            print("Etag NOT OK for {}/{} : {} != {}".format(bid, cid, last_modified, etag))
+
+    if not everything_ok:
+        raise ValueError("One of the collection did not validate.")
+
+
 def timestamp_to_date(timestamp_milliseconds):
     timestamp_seconds = int(timestamp_milliseconds) / 1000
     return datetime.utcfromtimestamp(timestamp_seconds).strftime('%Y-%m-%d %H:%M:%S UTC')

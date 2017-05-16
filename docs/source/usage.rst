@@ -137,3 +137,46 @@ Settings related to the Kinto server
         }
       ]
     }
+
+
+How do I create the ``validate_changes_collection`` function on Amazon Lambda?
+------------------------------------------------------------------------------
+
+1. `Log into the Amazon Web Service console. <https://console.aws.amazon.com/lambda/home>`_
+2. Click the **Create a Lambda Function** button
+3. Skip the blueprint
+4. Configure the function: **name**, **description**
+5. Select **Python 3.6** runtime
+6. Select **Upload a file from Amazon S3**
+7. Enter your S3 ``lambda.zip`` URL
+8. Use **aws_lambda.validate_changes_collection** handler
+9. Set a **Lambda S3 Exec Role**
+10. Configure a 5 minutes timeout
+11. You can proceed without a VPC
+
+
+How do I run the ``validate_change_collection`` function on Amazon Lambda?
+--------------------------------------------------------------------------
+
+Once your function has been configured, you can run it.
+
+To do that, select the function and in the **Actions** menu select
+**Configure Test event**.
+
+You will then be able to enter a **Input test event** as a JSON.
+
+This function reads the content and signature of a collection and
+validate the signature is valid.
+
+The ``validate_changes_collection`` let you define the following inputs:
+
+- **server**: The Kinto server to read blocklists data from.
+- **bucket**: The ``monitor`` bucket name.
+- **collection**: The ``changes`` collection name.
+
+
+.. code-block:: json
+
+    {
+      "server": "https://kinto.stage.mozaws.net/v1"
+    }
