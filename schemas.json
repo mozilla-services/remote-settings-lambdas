@@ -814,13 +814,13 @@
             "ui:help": "When checked this blocklist rule will apply to Firefox users."
           },
           "matchName": {
-            "ui:widget": "hidden"
+            "ui:help": "The value must conform to the RegExp JavaScript syntax, without expression delimiters (no /)."
           },
           "matchFilename": {
-            "ui:help": "The value must conform to the RegExp JavaScript syntax, with expression delimiters omitted (no /)."
+            "ui:help": "The value must conform to the RegExp JavaScript syntax, without expression delimiters (no /)."
           },
           "matchDescription": {
-            "ui:help": "The value must conform to the RegExp JavaScript syntax, with expression delimiters omitted (no /)."
+            "ui:help": "The value must conform to the RegExp JavaScript syntax, without expression delimiters (no /)."
           },
           "details": {
             "ui:order": [
