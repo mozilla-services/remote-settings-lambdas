@@ -12,72 +12,12 @@ from botocore.exceptions import ClientError
 from tempfile import mkdtemp
 
 from amo2kinto.generator import main as generator_main
-from amo2kinto.importer import main as importer_main
 from amo2kinto.kinto import update_schema_if_mandatory
-from amo2kinto.verifier import main as verifier
 
 from kinto_http import Client
 from kinto_signer.serializer import canonical_json
 from kinto_signer.hasher import compute_hash
 from kinto_signer.signer.local_ecdsa import ECDSASigner
-
-
-JSON2KINTO_ARGS = ['server', 'auth', 'editor-auth', 'reviewer-auth',
-                   'addons-server', 'schema-file', 'no-schema',
-                   'certificates-bucket', 'certificates-collection',
-                   'gfx-bucket', 'gfx-collection',
-                   'addons-bucket', 'addons-collection',
-                   'plugins-bucket', 'plugins-collection',
-                   'certificates', 'gfx', 'addons', 'plugins']
-
-JSON2KINTO_ENV_VARIABLES = {'JSON2KINTO_AUTH': '--auth',
-                            'JSON2KINTO_EDITOR_AUTH': '--editor-auth',
-                            'JSON2KINTO_REVIEWER_AUTH': '--reviewer-auth'}
-
-
-def json2kinto(event, context):
-    """Event will contain the json2kinto parameters:
-         - server: The kinto server to write data to.
-                   (i.e: https://kinto-writer.services.mozilla.com/)
-         - amo-server: The amo server to read blocklists data from.
-                       (i.e: https://addons.mozilla.org/)
-         - schema: The JSON schema collection file to read schema from.
-                   (i.e: schemas.json)
-    """
-
-    args = {}
-
-    # Upgrade by reading some ENV variables
-    for key, arg in JSON2KINTO_ENV_VARIABLES.items():
-        value = os.getenv(key)
-        if value is not None:
-            args[arg] = value
-
-    # Deduplicate keys that might also be present in the event.
-    for key, value in event.items():
-        if key in JSON2KINTO_ARGS:
-            args['--%s' % key] = value
-
-    # Convert the dict as a list of argv
-    flatten_args = sum(args.items(), ())
-
-    # Remove password from there when writting the args.
-    print("importer args", list(reduce(lambda x, y: x + y,
-                                       [x for x in args.items()
-                                        if x[0] not in JSON2KINTO_ENV_VARIABLES.values()])))
-    importer_main(flatten_args)
-
-
-def xmlverifier(event, context):
-    """xmlverifier takes local and remote parameter and validate that both
-    are equals.
-
-    """
-    print("verifier args", event)
-    response = verifier([event['local'], event['remote']])
-    if response:
-        raise Exception("There is a difference between: %r and %r" % (
-            event['local'], event['remote']))
 
 
 DEFAULT_COLLECTIONS = [
@@ -124,7 +64,7 @@ def validate_signature(event, context):
         # 6. Grab the public key
         try:
             f = tempfile.NamedTemporaryFile(delete=False)
-            f.write(signature['public_key'])
+            f.write(signature['public_key'].encode('utf-8'))
             f.close()
 
             # 7. Verify the signature matches the hash
