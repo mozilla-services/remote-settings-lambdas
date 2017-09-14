@@ -9,3 +9,5 @@ Or if you want to build it on a Lambda instance:
     make remote-zip
 
 You must run this script on a linux x86_64 arch, the same as Amazon Lambda.
+
+This now requires Python 3.6
