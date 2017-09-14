@@ -14,6 +14,7 @@ zip: clean virtualenv
 	touch venv/lib/python3.6/site-packages/zope/__init__.py
 	touch venv/lib/python3.6/site-packages/repoze/__init__.py
 	cd venv/lib/python3.6/site-packages/; zip -r ../../../../lambda.zip *
+	venv/bin/pip freeze > requirements.txt
 
 update-schemas:
 	wget -O schemas.json $(AMO_BLOCKLIST_UI_SCHEMA)
