@@ -2,4 +2,4 @@ kinto-http<8
 kinto<6
 amo2kinto<2
 boto3
-kinto-signer<1.4
+kinto-signer>2
