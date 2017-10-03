@@ -243,16 +243,12 @@
       "name": "certificates",
       "synced": true,
       "config": {
-        "displayFields": ["enabled", "blockID", "issuerName"],
+        "displayFields": ["enabled", "blockID", "issuerName", "subject"],
         "schema": {
           "title": "Certificate",
           "description": "A blocked certificate entry.",
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "issuerName",
-            "serialNumber"
-          ],
           "default": {
             "issuerName": "",
             "serialNumber": ""
@@ -290,6 +286,16 @@
               "title": "Serial number",
               "description": "The certificate serial number."
             },
+            "subject": {
+              "type": "string",
+              "title": "Subject",
+              "description": "The certificate subject."
+            },
+            "pubKeyHash": {
+              "type": "string",
+              "title": "Public Key Hash",
+              "description": "The certificate public key hash."
+            },
             "details": {
               "type": "object",
               "title": "Details",
@@ -314,6 +320,8 @@
             "enabled",
             "issuerName",
             "serialNumber",
+            "subject",
+            "pubKeyHash",
             "details",
             "blockID"
           ],
@@ -814,13 +822,13 @@
             "ui:help": "When checked this blocklist rule will apply to Firefox users."
           },
           "matchName": {
-            "ui:help": "The value must conform to the RegExp JavaScript syntax, without expression delimiters (no /)."
+            "ui:widget": "hidden"
           },
           "matchFilename": {
-            "ui:help": "The value must conform to the RegExp JavaScript syntax, without expression delimiters (no /)."
+            "ui:help": "The value must conform to the RegExp JavaScript syntax, with expression delimiters omitted (no /)."
           },
           "matchDescription": {
-            "ui:help": "The value must conform to the RegExp JavaScript syntax, without expression delimiters (no /)."
+            "ui:help": "The value must conform to the RegExp JavaScript syntax, with expression delimiters omitted (no /)."
           },
           "details": {
             "ui:order": [
