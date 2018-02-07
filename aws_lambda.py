@@ -36,16 +36,23 @@ DEFAULT_COLLECTIONS = [
 ]
 
 
+class ValidationError(Exception):
+    pass
+
+
 def validate_signature(event, context):
     server_url = event['server']
     collections = event.get('collections', DEFAULT_COLLECTIONS)
     exception = None
+    messages = []
 
     for collection in collections:
         client = Client(server_url=server_url,
                         bucket=collection['bucket'],
                         collection=collection['collection'])
-        print('Looking at %s: ' % client.get_endpoint('collection'), end='')
+        message = 'Looking at %s: ' % client.get_endpoint('collection')
+        print(message, end='')
+        messages.append(message)
 
         # 1. Grab collection information
         dest_col = client.get_collection()
@@ -72,19 +79,23 @@ def validate_signature(event, context):
             # 7. Verify the signature matches the hash
             signer = ECDSASigner(public_key=f.name)
             signer.verify(serialized, signature)
-            print('Signature OK')
+            message = 'Signature OK'
+            print(message)
+            messages.append(message)
         except Exception as e:
             exception = e
-            print('Signature KO.')
-            print(' - Computed hash: `{}`'.format(computed_hash))
-            print(' - Collection timestamp: `{}`'.format(timestamp))
-            print(' - Serialized content: `{}`'.format(serialized))
+            message = ('Signature KO.',
+                       ' - Computed hash: `{}`'.format(computed_hash),
+                       ' - Collection timestamp: `{}`'.format(timestamp),
+                       ' - Serialized content: `{}`'.format(serialized))
+            print("\n".join(message))
+            messages.extend(message)
         finally:
             os.unlink(f.name)
 
     # Make the lambda to fail in case an exception occured
     if exception is not None:
-        raise exception
+        raise ValidationError("{}:\n{}".format(exception, "\n".join(messages)))
 
 
 def validate_changes_collection(event, context):
