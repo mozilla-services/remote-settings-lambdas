@@ -44,7 +44,7 @@ def validate_signature(event, context):
     server_url = event['server']
     collections = event.get('collections', DEFAULT_COLLECTIONS)
     exception = None
-    messages = ""
+    messages = []
 
     for collection in collections:
         client = Client(server_url=server_url,
@@ -52,7 +52,7 @@ def validate_signature(event, context):
                         collection=collection['collection'])
         message = 'Looking at %s: ' % client.get_endpoint('collection')
         print(message, end='')
-        messages += message
+        messages.append(message)
 
         # 1. Grab collection information
         dest_col = client.get_collection()
@@ -79,21 +79,23 @@ def validate_signature(event, context):
             # 7. Verify the signature matches the hash
             signer = ECDSASigner(public_key=f.name)
             signer.verify(serialized, signature)
-            print('Signature OK')
+            message = 'Signature OK'
+            print(message)
+            messages.append(message)
         except Exception as e:
             exception = e
-            message = 'Signature KO.\n'
-            message += ' - Computed hash: `{}`\n'.format(computed_hash)
-            message += ' - Collection timestamp: `{}`\n'.format(timestamp)
-            message += ' - Serialized content: `{}`\n\n'.format(serialized)
-            print(message)
-            messages += message
+            message = ('Signature KO.',
+                       ' - Computed hash: `{}`'.format(computed_hash),
+                       ' - Collection timestamp: `{}`'.format(timestamp),
+                       ' - Serialized content: `{}`'.format(serialized))
+            print("\n".join(message))
+            messages.extend(message)
         finally:
             os.unlink(f.name)
 
     # Make the lambda to fail in case an exception occured
     if exception is not None:
-        raise ValidationError("{}:\n{}".format(exception, messages))
+        raise ValidationError("{}:\n{}".format(exception, "\n".join(messages)))
 
 
 def validate_changes_collection(event, context):
