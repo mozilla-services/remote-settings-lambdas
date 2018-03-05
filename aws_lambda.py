@@ -42,7 +42,15 @@ class ValidationError(Exception):
 
 def validate_signature(event, context):
     server_url = event['server']
-    collections = event.get('collections', DEFAULT_COLLECTIONS)
+    bucket = event.get('bucket', "monitor")
+    collection = event.get('collection', "changes")
+    client = Client(server_url=server_url,
+                    bucket=bucket,
+                    collection=collection)
+    print('Looking at %s: ' % client.get_endpoint('collection'))
+
+    collections = client.get_records()
+
     exception = None
     messages = []
 
@@ -56,6 +64,8 @@ def validate_signature(event, context):
 
         # 1. Grab collection information
         dest_col = client.get_collection()
+        if 'signature' not in dest_col['data']:
+            continue
 
         # 2. Grab records
         records = client.get_records(_sort='-last_modified')
