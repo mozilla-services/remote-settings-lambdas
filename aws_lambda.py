@@ -188,18 +188,6 @@ def refresh_signature(event, context):
               'at', timestamp_to_date(last_modified), '(', last_modified, ')')
 
 
-SCHEMA_COLLECTIONS = [
-    {'bucket': 'staging',
-     'collection': 'certificates'},
-    {'bucket': 'staging',
-     'collection': 'addons'},
-    {'bucket': 'staging',
-     'collection': 'plugins'},
-    {'bucket': 'staging',
-     'collection': 'gfx'}
-]
-
-
 def schema_updater(event, context):
     """Event will contain the json2kinto parameters:
          - server: The kinto server to write data to.
@@ -208,17 +196,22 @@ def schema_updater(event, context):
     server_url = event['server']
     auth = tuple(os.getenv('AUTH').split(':', 1))
 
-    collections = event.get('collections', SCHEMA_COLLECTIONS)
+    # AMO schemas are all in the staging bucket.
+    # See https://github.com/mozilla-services/cloudops-deployment/blob/dc72e8241f5f721e49c054c8726a4fc4a7089b61/projects/kinto-lambda/ansible/playbooks/schema_updater_lambda.yml#L16-L20
+    bucket = event.get('bucket', 'staging')
 
     # Open the file
-    with codecs.open("schemas.json", 'r', encoding='utf-8') as f:
+    with codecs.open('schemas.json', 'r', encoding='utf-8') as f:
         schemas = json.load(f)['collections']
 
     # Check all collections
-    for collection in collections:
+    for cid, schema in schemas.items():
+        if not schema.get('synced'):
+            continue
+
         client = Client(server_url=server_url,
-                        bucket=collection['bucket'],
-                        collection=collection['collection'],
+                        bucket=bucket,
+                        collection=cid,
                         auth=auth)
         print('Checking at %s: ' % client.get_endpoint('collection'), end='')
 
@@ -226,9 +219,7 @@ def schema_updater(event, context):
         dest_col = client.get_collection()
 
         # 2. Collection schema
-        collection_type = collection['collection']
-        config = schemas[collection_type]['config']
-
+        config = schema['config']
         update_schema_if_mandatory(dest_col, config, client.patch_collection)
         print('OK')
 
