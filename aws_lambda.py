@@ -38,10 +38,19 @@ def validate_signature(event, context):
 
     collections = client.get_records()
 
+    # Look at the signer configuration on the server.
+    server_info = client.server_info()
+
     exception = None
     messages = []
 
     for collection in collections:
+        source = get_signed_source(server_info, collection)
+        if source is None:
+            # This collection mentionned in the changes endpoint is not
+            # configured to be signed.
+            continue
+
         client = Client(server_url=server_url,
                         bucket=collection['bucket'],
                         collection=collection['collection'])
@@ -51,8 +60,6 @@ def validate_signature(event, context):
 
         # 1. Grab collection information
         dest_col = client.get_collection()
-        if 'signature' not in dest_col['data']:
-            continue
 
         # 2. Grab records
         records = client.get_records(_sort='-last_modified')
@@ -128,6 +135,23 @@ def timestamp_to_date(timestamp_milliseconds):
     return datetime.utcfromtimestamp(timestamp_seconds).strftime('%Y-%m-%d %H:%M:%S UTC')
 
 
+def get_signed_source(server_info, change):
+    # Small helper to identify the source collection from a potential
+    # signing destination collection, like those mentioned in the changes endpoint
+    # (eg. blocklists/plugins -> staging/plugins).
+    signed_resources = server_info['capabilities']['signer']['resources']
+    for r in signed_resources:
+        match_destination = (r['destination']['bucket'] == change['bucket']
+                             and (r['destination']['collection'] is None or
+                                  r['destination']['collection'] == change['collection']))
+        if match_destination:
+            return {
+                'bucket': r['source']['bucket'],
+                # Per-bucket configuration.
+                'collection': r['source']['collection'] or change['collection'],
+            }
+
+
 def refresh_signature(event, context):
     server_url = event['server']
     auth = tuple(os.getenv("REFRESH_SIGNATURE_AUTH").split(':', 1))
@@ -142,26 +166,11 @@ def refresh_signature(event, context):
     changes = client.get_records()
 
     # Look at the signer configuration on the server.
-    info = client.server_info()
-    signed_resources = info['capabilities']['signer']['resources']
-
-    def get_source(change):
-        # Small helper to pick the source collection from the collection
-        # mentionned in the changes endpoint. (eg. blocklists/plugins -> staging/plugins)
-        for r in signed_resources:
-            match_destination = (r['destination']['bucket'] == change['bucket']
-                                 and (r['destination']['collection'] is None or
-                                      r['destination']['collection'] == change['collection']))
-            if match_destination:
-                return {
-                    'bucket': r['source']['bucket'],
-                    # Per-bucket configuration.
-                    'collection': r['source']['collection'] or change['collection'],
-                }
+    server_info = client.server_info()
 
     for change in changes:
         # 0. Figure out which was the source collection of this signed collection.
-        source = get_source(change)
+        source = get_signed_source(server_info, change)
         if source is None:
             # Skip if change is no kinto-signer destination (eg. review collection)
             continue
@@ -205,7 +214,7 @@ def schema_updater(event, context):
     with codecs.open('schemas.json', 'r', encoding='utf-8') as f:
         schemas = json.load(f)['collections']
 
-    # Check all collections
+    # Use the collections mentioned in the schemas file.
     for cid, schema in schemas.items():
         if not schema.get('synced'):
             continue
@@ -300,7 +309,16 @@ def invalidate_cache(event, context):
             'CallerReference': '{}-{}'.format(timestamp, uuid.uuid4())
         })
 
+
 if __name__ == "__main__":
+    # Run the function specified in CLI arg.
+    #
+    # $ AUTH=user:pass  python aws_lambda.py schema_updater
+    # Checking at /buckets/staging/collections/addons: OK
+    # Checking at /buckets/staging/collections/certificates: OK
+    # Checking at /buckets/staging/collections/gfx: OK
+    # Checking at /buckets/staging/collections/plugins: OK
+    #
     event = {'server': os.getenv('SERVER', 'http://localhost:8888/v1')}
     context = None
     try:
