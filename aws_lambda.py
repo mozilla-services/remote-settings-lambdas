@@ -47,7 +47,7 @@ def validate_signature(event, context):
     for collection in collections:
         source = get_signed_source(server_info, collection)
         if source is None:
-            # This collection mentionned in the changes endpoint is not
+            # This collection mentioned in the changes endpoint is not
             # configured to be signed.
             continue
 
