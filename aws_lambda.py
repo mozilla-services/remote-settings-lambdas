@@ -2,6 +2,7 @@ from __future__ import print_function
 import codecs
 import json
 import os
+import sys
 import tempfile
 import time
 import uuid
@@ -298,3 +299,14 @@ def invalidate_cache(event, context):
             },
             'CallerReference': '{}-{}'.format(timestamp, uuid.uuid4())
         })
+
+if __name__ == "__main__":
+    event = {'server': os.getenv('SERVER', 'http://localhost:8888/v1')}
+    context = None
+    try:
+        function = globals()[sys.argv[1]]
+    except KeyError as e:
+        print("Unknown function %s" % e)
+        sys.exit(1)
+
+    function(event, context)
