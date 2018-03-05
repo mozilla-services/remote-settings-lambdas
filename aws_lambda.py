@@ -22,20 +22,6 @@ from kinto_signer.hasher import compute_hash
 from kinto_signer.signer.local_ecdsa import ECDSASigner
 
 
-DEFAULT_COLLECTIONS = [
-    {'bucket': 'blocklists',
-     'collection': 'certificates'},
-    {'bucket': 'blocklists',
-     'collection': 'addons'},
-    {'bucket': 'blocklists',
-     'collection': 'plugins'},
-    {'bucket': 'blocklists',
-     'collection': 'gfx'},
-    {'bucket': 'pinning',
-     'collection': 'pins'}
-]
-
-
 class ValidationError(Exception):
     pass
 
@@ -143,13 +129,45 @@ def timestamp_to_date(timestamp_milliseconds):
 
 def refresh_signature(event, context):
     server_url = event['server']
-    collections = event.get('collections', DEFAULT_COLLECTIONS)
     auth = tuple(os.getenv("REFRESH_SIGNATURE_AUTH").split(':', 1))
 
-    for collection in collections:
+    # Look at the collections in the changes endpoint.
+    bucket = event.get('bucket', "monitor")
+    collection = event.get('collection', "changes")
+    client = Client(server_url=server_url,
+                    bucket=bucket,
+                    collection=collection)
+    print('Looking at %s: ' % client.get_endpoint('collection'))
+    changes = client.get_records()
+
+    # Look at the signer configuration on the server.
+    info = client.server_info()
+    signed_resources = info['capabilities']['signer']['resources']
+
+    def get_source(change):
+        # Small helper to pick the source collection from the collection
+        # mentionned in the changes endpoint. (eg. blocklists/plugins -> staging/plugins)
+        for r in signed_resources:
+            match_destination = (r['destination']['bucket'] == change['bucket']
+                                 and (r['destination']['collection'] is None or
+                                      r['destination']['collection'] == change['collection']))
+            if match_destination:
+                return {
+                    'bucket': r['source']['bucket'],
+                    # Per-bucket configuration.
+                    'collection': r['source']['collection'] or change['collection'],
+                }
+
+    for change in changes:
+        # 0. Figure out which was the source collection of this signed collection.
+        source = get_source(change)
+        if source is None:
+            # Skip if change is no kinto-signer destination (eg. review collection)
+            continue
+
         client = Client(server_url=server_url,
-                        bucket=collection['bucket'],
-                        collection=collection['collection'],
+                        bucket=source['bucket'],
+                        collection=source['collection'],
                         auth=auth)
         print('Looking at %s:' % client.get_endpoint('collection'), end=' ')
 
