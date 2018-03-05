@@ -2,6 +2,7 @@ from __future__ import print_function
 import codecs
 import json
 import os
+import sys
 import tempfile
 import time
 import uuid
@@ -22,31 +23,34 @@ from kinto_signer.hasher import compute_hash
 from kinto_signer.signer.local_ecdsa import ECDSASigner
 
 
-DEFAULT_COLLECTIONS = [
-    {'bucket': 'blocklists',
-     'collection': 'certificates'},
-    {'bucket': 'blocklists',
-     'collection': 'addons'},
-    {'bucket': 'blocklists',
-     'collection': 'plugins'},
-    {'bucket': 'blocklists',
-     'collection': 'gfx'},
-    {'bucket': 'pinning',
-     'collection': 'pins'}
-]
-
-
 class ValidationError(Exception):
     pass
 
 
 def validate_signature(event, context):
     server_url = event['server']
-    collections = event.get('collections', DEFAULT_COLLECTIONS)
+    bucket = event.get('bucket', "monitor")
+    collection = event.get('collection', "changes")
+    client = Client(server_url=server_url,
+                    bucket=bucket,
+                    collection=collection)
+    print('Looking at %s: ' % client.get_endpoint('collection'))
+
+    collections = client.get_records()
+
+    # Look at the signer configuration on the server.
+    server_info = client.server_info()
+
     exception = None
     messages = []
 
     for collection in collections:
+        source = get_signed_source(server_info, collection)
+        if source is None:
+            # This collection mentioned in the changes endpoint is not
+            # configured to be signed.
+            continue
+
         client = Client(server_url=server_url,
                         bucket=collection['bucket'],
                         collection=collection['collection'])
@@ -131,15 +135,49 @@ def timestamp_to_date(timestamp_milliseconds):
     return datetime.utcfromtimestamp(timestamp_seconds).strftime('%Y-%m-%d %H:%M:%S UTC')
 
 
+def get_signed_source(server_info, change):
+    # Small helper to identify the source collection from a potential
+    # signing destination collection, like those mentioned in the changes endpoint
+    # (eg. blocklists/plugins -> staging/plugins).
+    signed_resources = server_info['capabilities']['signer']['resources']
+    for r in signed_resources:
+        match_destination = (r['destination']['bucket'] == change['bucket']
+                             and (r['destination']['collection'] is None or
+                                  r['destination']['collection'] == change['collection']))
+        if match_destination:
+            return {
+                'bucket': r['source']['bucket'],
+                # Per-bucket configuration.
+                'collection': r['source']['collection'] or change['collection'],
+            }
+
+
 def refresh_signature(event, context):
     server_url = event['server']
-    collections = event.get('collections', DEFAULT_COLLECTIONS)
     auth = tuple(os.getenv("REFRESH_SIGNATURE_AUTH").split(':', 1))
 
-    for collection in collections:
+    # Look at the collections in the changes endpoint.
+    bucket = event.get('bucket', "monitor")
+    collection = event.get('collection', "changes")
+    client = Client(server_url=server_url,
+                    bucket=bucket,
+                    collection=collection)
+    print('Looking at %s: ' % client.get_endpoint('collection'))
+    changes = client.get_records()
+
+    # Look at the signer configuration on the server.
+    server_info = client.server_info()
+
+    for change in changes:
+        # 0. Figure out which was the source collection of this signed collection.
+        source = get_signed_source(server_info, change)
+        if source is None:
+            # Skip if change is no kinto-signer destination (eg. review collection)
+            continue
+
         client = Client(server_url=server_url,
-                        bucket=collection['bucket'],
-                        collection=collection['collection'],
+                        bucket=source['bucket'],
+                        collection=source['collection'],
                         auth=auth)
         print('Looking at %s:' % client.get_endpoint('collection'), end=' ')
 
@@ -160,18 +198,6 @@ def refresh_signature(event, context):
               'at', timestamp_to_date(last_modified), '(', last_modified, ')')
 
 
-SCHEMA_COLLECTIONS = [
-    {'bucket': 'staging',
-     'collection': 'certificates'},
-    {'bucket': 'staging',
-     'collection': 'addons'},
-    {'bucket': 'staging',
-     'collection': 'plugins'},
-    {'bucket': 'staging',
-     'collection': 'gfx'}
-]
-
-
 def schema_updater(event, context):
     """Event will contain the json2kinto parameters:
          - server: The kinto server to write data to.
@@ -180,17 +206,22 @@ def schema_updater(event, context):
     server_url = event['server']
     auth = tuple(os.getenv('AUTH').split(':', 1))
 
-    collections = event.get('collections', SCHEMA_COLLECTIONS)
+    # AMO schemas are all in the staging bucket.
+    # See https://github.com/mozilla-services/cloudops-deployment/blob/dc72e8241f5f721e49c054c8726a4fc4a7089b61/projects/kinto-lambda/ansible/playbooks/schema_updater_lambda.yml#L16-L20
+    bucket = event.get('bucket', 'staging')
 
     # Open the file
-    with codecs.open("schemas.json", 'r', encoding='utf-8') as f:
+    with codecs.open('schemas.json', 'r', encoding='utf-8') as f:
         schemas = json.load(f)['collections']
 
-    # Check all collections
-    for collection in collections:
+    # Use the collections mentioned in the schemas file.
+    for cid, schema in schemas.items():
+        if not schema.get('synced'):
+            continue
+
         client = Client(server_url=server_url,
-                        bucket=collection['bucket'],
-                        collection=collection['collection'],
+                        bucket=bucket,
+                        collection=cid,
                         auth=auth)
         print('Checking at %s: ' % client.get_endpoint('collection'), end='')
 
@@ -198,9 +229,7 @@ def schema_updater(event, context):
         dest_col = client.get_collection()
 
         # 2. Collection schema
-        collection_type = collection['collection']
-        config = schemas[collection_type]['config']
-
+        config = schema['config']
         update_schema_if_mandatory(dest_col, config, client.patch_collection)
         print('OK')
 
@@ -279,3 +308,23 @@ def invalidate_cache(event, context):
             },
             'CallerReference': '{}-{}'.format(timestamp, uuid.uuid4())
         })
+
+
+if __name__ == "__main__":
+    # Run the function specified in CLI arg.
+    #
+    # $ AUTH=user:pass  python aws_lambda.py schema_updater
+    # Checking at /buckets/staging/collections/addons: OK
+    # Checking at /buckets/staging/collections/certificates: OK
+    # Checking at /buckets/staging/collections/gfx: OK
+    # Checking at /buckets/staging/collections/plugins: OK
+    #
+    event = {'server': os.getenv('SERVER', 'http://localhost:8888/v1')}
+    context = None
+    try:
+        function = globals()[sys.argv[1]]
+    except KeyError as e:
+        print("Unknown function %s" % e)
+        sys.exit(1)
+
+    function(event, context)
