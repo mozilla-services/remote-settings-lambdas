@@ -38,23 +38,10 @@ def validate_signature(event, context):
 
     collections = client.get_records()
 
-    # Look at the signer configuration on the server.
-    server_info = client.server_info()
-
-    # kinto-signer not enabled on server.
-    signer_enabled = 'signer' in server_info['capabilities']
-
     exception = None
     messages = []
 
     for collection in collections:
-        if signer_enabled:
-            # We can be smart and skip collections mentioned in the changes endpoint
-            # but not configured to be signed.
-            source = get_signed_source(server_info, collection)
-            if source is None:
-                continue
-
         client = Client(server_url=server_url,
                         bucket=collection['bucket'],
                         collection=collection['collection'])
