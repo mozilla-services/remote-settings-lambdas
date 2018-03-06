@@ -59,7 +59,7 @@ def validate_signature(event, context):
         messages.append(message)
 
         # 1. Grab collection information
-        dest_col = client.get_collection()
+        dest_col = client.get_collection()['data']
 
         # 2. Grab records
         records = client.get_records(_sort='-last_modified')
@@ -73,7 +73,7 @@ def validate_signature(event, context):
 
         # 5. Grab the signature
         try:
-            signature = dest_col['data']['signature']
+            signature = dest_col['signature']
         except KeyError:
             # Destination has no signature attribute.
             # Be smart and check if it was just configured.
