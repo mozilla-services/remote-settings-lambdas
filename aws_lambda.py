@@ -72,7 +72,21 @@ def validate_signature(event, context):
         computed_hash = compute_hash(serialized)
 
         # 5. Grab the signature
-        signature = dest_col['data']['signature']
+        try:
+            signature = dest_col['data']['signature']
+        except KeyError:
+            # Destination has no signature attribute.
+            # Be smart and check if it was just configured.
+            # See https://github.com/mozilla-services/amo2kinto-lambda/issues/31
+            with_tombstones = client.get_records(_since=1)
+            if len(with_tombstones) == 0:
+                # It never contained records. Let's assume it is newly configured.
+                message = 'SKIP'
+                print(message)
+                messages.append(message)
+                continue
+            # Some records and empty signature? It will fail below.
+            signature = {}
 
         # 6. Grab the public key
         try:
@@ -89,6 +103,7 @@ def validate_signature(event, context):
         except Exception as e:
             exception = e
             message = ('Signature KO.',
+                       ' - Signature: `{}`'.format(signature),
                        ' - Computed hash: `{}`'.format(computed_hash),
                        ' - Collection timestamp: `{}`'.format(timestamp),
                        ' - Serialized content: `{}`'.format(serialized))
