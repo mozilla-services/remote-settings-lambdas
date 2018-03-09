@@ -38,19 +38,10 @@ def validate_signature(event, context):
 
     collections = client.get_records()
 
-    # Look at the signer configuration on the server.
-    server_info = client.server_info()
-
     exception = None
     messages = []
 
     for collection in collections:
-        source = get_signed_source(server_info, collection)
-        if source is None:
-            # This collection mentioned in the changes endpoint is not
-            # configured to be signed.
-            continue
-
         client = Client(server_url=server_url,
                         bucket=collection['bucket'],
                         collection=collection['collection'])
