@@ -1,7 +1,5 @@
 SPHINX_BUILDDIR = docs/build
 
-AMO_BLOCKLIST_UI_SCHEMA = "https://raw.githubusercontent.com/mozilla-services/amo-blocklist-ui/master/amo-blocklist.json"
-
 clean:
 	rm -fr venv lambda.zip ami-built-lambda.zip
 
@@ -16,9 +14,6 @@ zip: clean virtualenv
 	cd venv/lib/python3.6/site-packages/; zip -r ../../../../lambda.zip *
 	zip lambda.zip schemas.json
 	venv/bin/pip freeze > requirements.txt
-
-update-schemas:
-	wget -O schemas.json $(AMO_BLOCKLIST_UI_SCHEMA)
 
 docs: virtualenv
 	venv/bin/pip install -r docs/requirements.txt
