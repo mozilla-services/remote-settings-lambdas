@@ -34,20 +34,19 @@ def validate_signature(event, context):
     client = Client(server_url=server_url,
                     bucket=bucket,
                     collection=collection)
-    print('Looking at %s: ' % client.get_endpoint('collection'))
+    print('Read collection list from {}'.format(client.get_endpoint('collection')))
 
     collections = client.get_records()
 
-    exception = None
-    messages = []
+    error_messages = []
 
-    for collection in collections:
+    for i, collection in enumerate(collections):
         client = Client(server_url=server_url,
                         bucket=collection['bucket'],
                         collection=collection['collection'])
-        message = 'Looking at %s: ' % client.get_endpoint('collection')
-        print(message, end='')
-        messages.append(message)
+
+        endpoint = client.get_endpoint('collection')
+        message = "{:02d}/{:02d} {}:  ".format(i + 1, len(collections), endpoint)
 
         # 1. Grab collection information
         dest_col = client.get_collection()['data']
@@ -72,9 +71,8 @@ def validate_signature(event, context):
             with_tombstones = client.get_records(_since=1)
             if len(with_tombstones) == 0:
                 # It never contained records. Let's assume it is newly configured.
-                message = 'SKIP'
+                message += 'SKIP'
                 print(message)
-                messages.append(message)
                 continue
             # Some records and empty signature? It will fail below.
             signature = {}
@@ -88,24 +86,26 @@ def validate_signature(event, context):
             # 7. Verify the signature matches the hash
             signer = ECDSASigner(public_key=f.name)
             signer.verify(serialized, signature)
-            message = 'Signature OK'
+            message += 'OK'
             print(message)
-            messages.append(message)
         except Exception as e:
-            exception = e
-            message = ('Signature KO.',
-                       ' - Signature: `{}`'.format(signature),
-                       ' - Computed hash: `{}`'.format(computed_hash),
-                       ' - Collection timestamp: `{}`'.format(timestamp),
-                       ' - Serialized content: `{}`'.format(serialized))
-            print("\n".join(message))
-            messages.extend(message)
+            message += '⚠ BAD Signature ⚠'
+            print(message)
+
+            # Gather details for the global exception that will be raised.
+            error_message = (
+                'Signature verification failed on {endpoint}\n'
+                ' - Signature: `{signature}`\n'
+                ' - Collection timestamp: `{timestamp}`\n'
+            ).format(**locals())
+            error_messages.append(error_message)
+
         finally:
             os.unlink(f.name)
 
     # Make the lambda to fail in case an exception occured
-    if exception is not None:
-        raise ValidationError("{}:\n{}".format(exception, "\n".join(messages)))
+    if len(error_messages) > 0:
+        raise ValidationError("\n\n".join(error_messages))
 
 
 def validate_changes_collection(event, context):
