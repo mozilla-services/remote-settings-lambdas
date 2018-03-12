@@ -50,6 +50,7 @@ def validate_signature(event, context):
 
         # 1. Grab collection information
         dest_col = client.get_collection()['data']
+        signed_on = dest_col['last_modified']
 
         # 2. Grab records
         records = client.get_records(_sort='-last_modified')
@@ -93,10 +94,12 @@ def validate_signature(event, context):
             print(message)
 
             # Gather details for the global exception that will be raised.
+            signed_on_date = timestamp_to_date(signed_on)
+            timestamp_date = timestamp_to_date(timestamp)
             error_message = (
                 'Signature verification failed on {endpoint}\n'
-                ' - Signature: `{signature}`\n'
-                ' - Collection timestamp: `{timestamp}`\n'
+                ' - Signed on: {signed_on} ({signed_on_date})\n'
+                ' - Records timestamp: {timestamp} ({timestamp_date})'
             ).format(**locals())
             error_messages.append(error_message)
 
@@ -105,7 +108,7 @@ def validate_signature(event, context):
 
     # Make the lambda to fail in case an exception occured
     if len(error_messages) > 0:
-        raise ValidationError("\n\n".join(error_messages))
+        raise ValidationError("\n" + "\n\n".join(error_messages))
 
 
 def validate_changes_collection(event, context):
