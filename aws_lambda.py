@@ -195,7 +195,8 @@ def refresh_signature(event, context):
         last_modified = collection_metadata['last_modified']
 
         # 2. If status is signed
-        if collection_metadata.get('status') == 'signed':
+        status = collection_metadata.get('status')
+        if status == 'signed':
 
             # 2.1. Trigger a signature
             print('Trigger new signature: ', end='')
@@ -203,8 +204,7 @@ def refresh_signature(event, context):
             last_modified = new_metadata['data']['last_modified']
 
         # 3. Display the status of the collection
-        print(collection_metadata['status'],
-              'at', timestamp_to_date(last_modified), '(', last_modified, ')')
+        print('status=', status, 'at', timestamp_to_date(last_modified), '(', last_modified, ')')
 
 
 def schema_updater(event, context):
