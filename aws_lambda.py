@@ -195,7 +195,7 @@ def refresh_signature(event, context):
         last_modified = collection_metadata['last_modified']
 
         # 2. If status is signed
-        if collection_metadata['status'] == 'signed':
+        if collection_metadata.get('status') == 'signed':
 
             # 2.1. Trigger a signature
             print('Trigger new signature: ', end='')
