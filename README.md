@@ -1,17 +1,5 @@
 # amo2kinto Lambda
 
-Use this script to generate a zip for Amazon Lambda:
-
-    make clean virtualenv zip upload-to-s3
-
-Or if you want to build it on a Lambda instance:
-
-    make remote-zip
-
-You must run this script on a linux x86_64 arch, the same as Amazon Lambda.
-
-This now requires Python 3.6
-
 ## Test locally
 
 For example, run [kinto-dist](https://github.com/Kinto/kinto-dist/) locally (see README).
@@ -65,9 +53,12 @@ Checking at /buckets/staging/collections/gfx: OK
 Checking at /buckets/staging/collections/plugins: OK
 ```
 
-# Releasing
+## Releasing
+
+You must run this on a linux x86_64 arch, the same as Amazon Lambda.
 
 - `git checkout -b prepare-x.y.z`
+- `make clean`
 - `make zip`
 - `git add requirements.txt; git commit`
 - Open a PR
