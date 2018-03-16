@@ -1,6 +1,5 @@
 from __future__ import print_function
 import base64
-import codecs
 import hashlib
 import json
 import operator
@@ -15,7 +14,6 @@ import boto3
 import boto3.session
 import ecdsa
 from amo2kinto.generator import main as generator_main
-from amo2kinto.kinto import update_schema_if_mandatory
 from botocore.exceptions import ClientError
 from kinto_http import Client
 
@@ -86,7 +84,7 @@ def validate_signature(event, context):
             verifier = ecdsa.VerifyingKey.from_pem(pubkey)
             signature = base64.urlsafe_b64decode(signature['signature'])
             verified = verifier.verify(signature, data, hashfunc=hashlib.sha384)
-            assert verified == True, "Signature verification failed"
+            assert verified, "Signature verification failed"
 
             message += 'OK'
             print(message)
