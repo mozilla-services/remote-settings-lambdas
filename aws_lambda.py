@@ -86,7 +86,7 @@ def validate_signature(event, context):
             verifier = ecdsa.VerifyingKey.from_pem(pubkey)
             signature = base64.urlsafe_b64decode(signature['signature'])
             verified = verifier.verify(signature, data, hashfunc=hashlib.sha384)
-            assert verified == True, "Signature no verified"
+            assert verified == True, "Signature verification failed"
 
             message += 'OK'
             print(message)
