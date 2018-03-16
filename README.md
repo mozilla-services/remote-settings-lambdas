@@ -42,17 +42,6 @@ Looking at /buckets/staging/collections/gfx: Trigger new signature: signed at 20
 
 ```
 
-### Update schemas
-
-```
-$ AUTH=user:pass  python aws_lambda.py schema_updater
-
-Checking at /buckets/staging/collections/addons: OK
-Checking at /buckets/staging/collections/certificates: OK
-Checking at /buckets/staging/collections/gfx: OK
-Checking at /buckets/staging/collections/plugins: OK
-```
-
 ## Releasing
 
 You must run this on a linux x86_64 arch, the same as Amazon Lambda.
