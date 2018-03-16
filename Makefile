@@ -9,8 +9,6 @@ virtualenv:
 
 zip: clean virtualenv
 	zip lambda.zip aws_lambda.py
-	touch venv/lib/python3.6/site-packages/zope/__init__.py
-	touch venv/lib/python3.6/site-packages/repoze/__init__.py
 	cd venv/lib/python3.6/site-packages/; zip -r ../../../../lambda.zip *
 	zip lambda.zip schemas.json
 	venv/bin/pip freeze > requirements.txt

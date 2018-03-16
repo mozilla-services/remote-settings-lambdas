@@ -1,26 +1,30 @@
 from __future__ import print_function
+import base64
 import codecs
+import hashlib
 import json
+import operator
 import os
 import sys
-import tempfile
 import time
 import uuid
 from datetime import datetime
+from tempfile import mkdtemp
 
 import boto3
 import boto3.session
-from botocore.exceptions import ClientError
-
-from tempfile import mkdtemp
-
+import ecdsa
 from amo2kinto.generator import main as generator_main
 from amo2kinto.kinto import update_schema_if_mandatory
-
+from botocore.exceptions import ClientError
 from kinto_http import Client
-from kinto_signer.serializer import canonical_json
-from kinto_signer.hasher import compute_hash
-from kinto_signer.signer.local_ecdsa import ECDSASigner
+
+
+def canonical_json(records, last_modified):
+    records = (r for r in records if not r.get('deleted', False))
+    records = sorted(records, key=operator.itemgetter('id'))
+    payload = {'data': records, 'last_modified': '%s' % last_modified}
+    return json.dumps(payload, sort_keys=True, separators=(',', ':'))
 
 
 class ValidationError(Exception):
@@ -59,10 +63,7 @@ def validate_signature(event, context):
         # 3. Serialize
         serialized = canonical_json(records, timestamp)
 
-        # 4. Compute hash
-        computed_hash = compute_hash(serialized)
-
-        # 5. Grab the signature
+        # 4. Grab the signature
         try:
             signature = dest_col['signature']
         except KeyError:
@@ -78,15 +79,15 @@ def validate_signature(event, context):
             # Some records and empty signature? It will fail below.
             signature = {}
 
-        # 6. Grab the public key
+        # 5. Grab the public key
         try:
-            f = tempfile.NamedTemporaryFile(delete=False)
-            f.write(signature['public_key'].encode('utf-8'))
-            f.close()
+            pubkey = signature['public_key'].encode('utf-8')
+            data = b'Content-Signature:\x00' + serialized.encode('utf-8')
+            verifier = ecdsa.VerifyingKey.from_pem(pubkey)
+            signature = base64.urlsafe_b64decode(signature['signature'])
+            verified = verifier.verify(signature, data, hashfunc=hashlib.sha384)
+            assert verified == True, "Signature no verified"
 
-            # 7. Verify the signature matches the hash
-            signer = ECDSASigner(public_key=f.name)
-            signer.verify(serialized, signature)
             message += 'OK'
             print(message)
         except Exception as e:
@@ -102,9 +103,6 @@ def validate_signature(event, context):
                 ' - Records timestamp: {timestamp} ({timestamp_date})'
             ).format(**locals())
             error_messages.append(error_message)
-
-        finally:
-            os.unlink(f.name)
 
     # Make the lambda to fail in case an exception occured
     if len(error_messages) > 0:

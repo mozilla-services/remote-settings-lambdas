@@ -1,4 +1,4 @@
 kinto-http
 amo2kinto
 boto3
-kinto-signer
+ecdsa
