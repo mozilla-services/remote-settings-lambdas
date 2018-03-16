@@ -1,7 +1,7 @@
 SPHINX_BUILDDIR = docs/build
 
 clean:
-	rm -fr venv lambda.zip ami-built-lambda.zip
+	rm -fr venv lambda.zip
 
 virtualenv:
 	virtualenv venv --python=python3.6
@@ -10,7 +10,7 @@ virtualenv:
 zip: clean virtualenv
 	zip lambda.zip aws_lambda.py
 	cd venv/lib/python3.6/site-packages/; zip -r ../../../../lambda.zip *
-	zip lambda.zip schemas.json
+	zip lambda.zip
 	venv/bin/pip freeze > requirements.txt
 
 docs: virtualenv

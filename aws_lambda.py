@@ -205,42 +205,6 @@ def refresh_signature(event, context):
         print('status=', status, 'at', timestamp_to_date(last_modified), '(', last_modified, ')')
 
 
-def schema_updater(event, context):
-    """Event will contain the json2kinto parameters:
-         - server: The kinto server to write data to.
-                   (i.e: https://kinto-writer.services.mozilla.com/)
-    """
-    server_url = event['server']
-    auth = tuple(os.getenv('AUTH').split(':', 1))
-
-    # AMO schemas are all in the staging bucket.
-    # See https://github.com/mozilla-services/cloudops-deployment/blob/dc72e8241f5f721e49c054c8726a4fc4a7089b61/projects/kinto-lambda/ansible/playbooks/schema_updater_lambda.yml#L16-L20
-    bucket = event.get('bucket', 'staging')
-
-    # Open the file
-    with codecs.open('schemas.json', 'r', encoding='utf-8') as f:
-        schemas = json.load(f)['collections']
-
-    # Use the collections mentioned in the schemas file.
-    for cid, schema in schemas.items():
-        if not schema.get('synced'):
-            continue
-
-        client = Client(server_url=server_url,
-                        bucket=bucket,
-                        collection=cid,
-                        auth=auth)
-        print('Checking at %s: ' % client.get_endpoint('collection'), end='')
-
-        # 1. Grab collection information
-        dest_col = client.get_collection()
-
-        # 2. Collection schema
-        config = schema['config']
-        update_schema_if_mandatory(dest_col, config, client.patch_collection)
-        print('OK')
-
-
 BLOCKPAGES_ARGS = ['server', 'bucket', 'addons-collection', 'plugins-collection']
 
 
@@ -320,11 +284,7 @@ def invalidate_cache(event, context):
 if __name__ == "__main__":
     # Run the function specified in CLI arg.
     #
-    # $ AUTH=user:pass  python aws_lambda.py schema_updater
-    # Checking at /buckets/staging/collections/addons: OK
-    # Checking at /buckets/staging/collections/certificates: OK
-    # Checking at /buckets/staging/collections/gfx: OK
-    # Checking at /buckets/staging/collections/plugins: OK
+    # $ AUTH=user:pass python aws_lambda.py refresh_signature
     #
     event = {'server': os.getenv('SERVER', 'http://localhost:8888/v1')}
     context = None
