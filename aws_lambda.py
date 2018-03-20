@@ -1,9 +1,14 @@
 from __future__ import print_function
 import base64
+import cryptography
+import cryptography.x509
+from cryptography.hazmat.backends import default_backend as crypto_default_backend
+from cryptography.x509.oid import NameOID
 import hashlib
 import json
 import operator
 import os
+import requests
 import sys
 import time
 import uuid
@@ -16,6 +21,9 @@ import ecdsa
 from amo2kinto.generator import main as generator_main
 from botocore.exceptions import ClientError
 from kinto_http import Client
+
+
+EXPECTED_CERT_ORG = "Mozilla Corporation"
 
 
 def canonical_json(records, last_modified):
@@ -41,6 +49,8 @@ def validate_signature(event, context):
     collections = client.get_records()
 
     error_messages = []
+
+    checked_certificates = {}
 
     for i, collection in enumerate(collections):
         client = Client(server_url=server_url,
@@ -77,14 +87,28 @@ def validate_signature(event, context):
             # Some records and empty signature? It will fail below.
             signature = {}
 
-        # 5. Grab the public key
         try:
+            # 5. Verify the signature with the public key
             pubkey = signature['public_key'].encode('utf-8')
             data = b'Content-Signature:\x00' + serialized.encode('utf-8')
             verifier = ecdsa.VerifyingKey.from_pem(pubkey)
-            signature = base64.urlsafe_b64decode(signature['signature'])
-            verified = verifier.verify(signature, data, hashfunc=hashlib.sha384)
+            signature_bytes = base64.urlsafe_b64decode(signature['signature'])
+            verified = verifier.verify(signature_bytes, data, hashfunc=hashlib.sha384)
             assert verified, "Signature verification failed"
+
+            # 6. Verify that the x5u certificate is valid (ie. that signature was well refreshed)
+            x5u = signature['x5u']
+            if x5u not in checked_certificates:
+                resp = requests.get(signature['x5u'])
+                cert_pem = resp.text.encode('utf-8')
+                cert = cryptography.x509.load_pem_x509_certificate(cert_pem, crypto_default_backend())
+                assert cert.signature_algorithm_oid == cryptography.x509.OID_ECDSA_WITH_SHA384, "unexpected signature algorithm"
+                assert cert.not_valid_before < datetime.now(), "certificate not yet valid"
+                assert cert.not_valid_after > datetime.now(), "certificate expired"
+                assert cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value.endswith('content-signature.mozilla.org'), "invalid subject name"
+                assert EXPECTED_CERT_ORG in cert.subject.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value, "invalid subject organization"
+                assert EXPECTED_CERT_ORG in cert.issuer.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value, "invalid issuer organization"
+                checked_certificates[x5u] = True
 
             message += 'OK'
             print(message)
