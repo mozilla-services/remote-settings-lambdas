@@ -3,6 +3,7 @@ import base64
 import cryptography
 import cryptography.x509
 from cryptography.hazmat.backends import default_backend as crypto_default_backend
+from cryptography.hazmat.primitives import serialization as crypto_serialization
 from cryptography.x509.oid import NameOID
 import hashlib
 import json
@@ -28,6 +29,12 @@ def canonical_json(records, last_modified):
     records = sorted(records, key=operator.itemgetter('id'))
     payload = {'data': records, 'last_modified': '%s' % last_modified}
     return json.dumps(payload, sort_keys=True, separators=(',', ':'))
+
+
+def unpem(pem):
+    # Join lines and strip -----BEGIN/END PUBLIC KEY----- header/footer
+    return b"".join([l.strip() for l in pem.split(b"\n")
+                     if l and not l.startswith(b"-----")])
 
 
 class ValidationError(Exception):
@@ -104,7 +111,13 @@ def validate_signature(event, context):
                 subject = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
                 # eg. onecrl.content-signature.mozilla.org, pinning-preload.content-signature.mozilla.org
                 assert subject.endswith('.content-signature.mozilla.org'), "invalid subject name"
-                checked_certificates[x5u] = True
+                checked_certificates[x5u] = cert
+
+            # 7. Check that public key matches the certificate one.
+            cert = checked_certificates[x5u]
+            cert_pubkey_pem = cert.public_key().public_bytes(crypto_serialization.Encoding.PEM,
+                                                             crypto_serialization.PublicFormat.SubjectPublicKeyInfo)
+            assert unpem(cert_pubkey_pem) == pubkey, "signature public key does not match certificate"
 
             message += 'OK'
             print(message)
