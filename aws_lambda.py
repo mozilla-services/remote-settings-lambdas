@@ -4,6 +4,7 @@ import hashlib
 import json
 import operator
 import os
+import requests
 import sys
 import time
 import uuid
@@ -12,9 +13,14 @@ from tempfile import mkdtemp
 
 import boto3
 import boto3.session
+import cryptography
+import cryptography.x509
 import ecdsa
 from amo2kinto.generator import main as generator_main
 from botocore.exceptions import ClientError
+from cryptography.hazmat.backends import default_backend as crypto_default_backend
+from cryptography.hazmat.primitives import serialization as crypto_serialization
+from cryptography.x509.oid import NameOID
 from kinto_http import Client
 
 
@@ -23,6 +29,12 @@ def canonical_json(records, last_modified):
     records = sorted(records, key=operator.itemgetter('id'))
     payload = {'data': records, 'last_modified': '%s' % last_modified}
     return json.dumps(payload, sort_keys=True, separators=(',', ':'))
+
+
+def unpem(pem):
+    # Join lines and strip -----BEGIN/END PUBLIC KEY----- header/footer
+    return b"".join([l.strip() for l in pem.split(b"\n")
+                     if l and not l.startswith(b"-----")])
 
 
 class ValidationError(Exception):
@@ -41,6 +53,8 @@ def validate_signature(event, context):
     collections = client.get_records()
 
     error_messages = []
+
+    checked_certificates = {}
 
     for i, collection in enumerate(collections):
         client = Client(server_url=server_url,
@@ -77,14 +91,33 @@ def validate_signature(event, context):
             # Some records and empty signature? It will fail below.
             signature = {}
 
-        # 5. Grab the public key
         try:
+            # 5. Verify the signature with the public key
             pubkey = signature['public_key'].encode('utf-8')
             data = b'Content-Signature:\x00' + serialized.encode('utf-8')
             verifier = ecdsa.VerifyingKey.from_pem(pubkey)
-            signature = base64.urlsafe_b64decode(signature['signature'])
-            verified = verifier.verify(signature, data, hashfunc=hashlib.sha384)
+            signature_bytes = base64.urlsafe_b64decode(signature['signature'])
+            verified = verifier.verify(signature_bytes, data, hashfunc=hashlib.sha384)
             assert verified, "Signature verification failed"
+
+            # 6. Verify that the x5u certificate is valid (ie. that signature was well refreshed)
+            x5u = signature['x5u']
+            if x5u not in checked_certificates:
+                resp = requests.get(signature['x5u'])
+                cert_pem = resp.text.encode('utf-8')
+                cert = cryptography.x509.load_pem_x509_certificate(cert_pem, crypto_default_backend())
+                assert cert.not_valid_before < datetime.now(), "certificate not yet valid"
+                assert cert.not_valid_after > datetime.now(), "certificate expired"
+                subject = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+                # eg. onecrl.content-signature.mozilla.org, pinning-preload.content-signature.mozilla.org
+                assert subject.endswith('.content-signature.mozilla.org'), "invalid subject name"
+                checked_certificates[x5u] = cert
+
+            # 7. Check that public key matches the certificate one.
+            cert = checked_certificates[x5u]
+            cert_pubkey_pem = cert.public_key().public_bytes(crypto_serialization.Encoding.PEM,
+                                                             crypto_serialization.PublicFormat.SubjectPublicKeyInfo)
+            assert unpem(cert_pubkey_pem) == pubkey, "signature public key does not match certificate"
 
             message += 'OK'
             print(message)
