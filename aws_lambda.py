@@ -23,9 +23,6 @@ from botocore.exceptions import ClientError
 from kinto_http import Client
 
 
-EXPECTED_CERT_ORG = "Mozilla Corporation"
-
-
 def canonical_json(records, last_modified):
     records = (r for r in records if not r.get('deleted', False))
     records = sorted(records, key=operator.itemgetter('id'))
@@ -102,12 +99,11 @@ def validate_signature(event, context):
                 resp = requests.get(signature['x5u'])
                 cert_pem = resp.text.encode('utf-8')
                 cert = cryptography.x509.load_pem_x509_certificate(cert_pem, crypto_default_backend())
-                assert cert.signature_algorithm_oid == cryptography.x509.OID_ECDSA_WITH_SHA384, "unexpected signature algorithm"
                 assert cert.not_valid_before < datetime.now(), "certificate not yet valid"
                 assert cert.not_valid_after > datetime.now(), "certificate expired"
-                assert cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value.endswith('content-signature.mozilla.org'), "invalid subject name"
-                assert EXPECTED_CERT_ORG in cert.subject.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value, "invalid subject organization"
-                assert EXPECTED_CERT_ORG in cert.issuer.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value, "invalid issuer organization"
+                subject = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+                # eg. onecrl.content-signature.mozilla.org, pinning-preload.content-signature.mozilla.org
+                assert subject.endswith('.content-signature.mozilla.org'), "invalid subject name"
                 checked_certificates[x5u] = True
 
             message += 'OK'
