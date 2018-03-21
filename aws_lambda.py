@@ -1,10 +1,5 @@
 from __future__ import print_function
 import base64
-import cryptography
-import cryptography.x509
-from cryptography.hazmat.backends import default_backend as crypto_default_backend
-from cryptography.hazmat.primitives import serialization as crypto_serialization
-from cryptography.x509.oid import NameOID
 import hashlib
 import json
 import operator
@@ -18,9 +13,14 @@ from tempfile import mkdtemp
 
 import boto3
 import boto3.session
+import cryptography
+import cryptography.x509
 import ecdsa
 from amo2kinto.generator import main as generator_main
 from botocore.exceptions import ClientError
+from cryptography.hazmat.backends import default_backend as crypto_default_backend
+from cryptography.hazmat.primitives import serialization as crypto_serialization
+from cryptography.x509.oid import NameOID
 from kinto_http import Client
 
 
