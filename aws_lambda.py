@@ -295,23 +295,6 @@ def sync_to_s3(target_dir, aws_region=AWS_REGION, bucket_name=BUCKET_NAME):
             aws_region, bucket_name, filename))
 
 
-def invalidate_cache(event, context):
-    distribution_id = event['distribution_id']
-
-    timestamp = int(time.mktime(time.gmtime()))
-    # Create a boto client
-    client = boto3.client('cloudfront')
-    client.create_invalidation(
-        DistributionId=distribution_id,
-        InvalidationBatch={
-            'Paths': {
-                'Quantity': 1,
-                'Items': ['/v1/*']
-            },
-            'CallerReference': '{}-{}'.format(timestamp, uuid.uuid4())
-        })
-
-
 if __name__ == "__main__":
     # Run the function specified in CLI arg.
     #
