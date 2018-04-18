@@ -13,18 +13,25 @@ $ bash /path/to/kinto-dist/tests/smoke-test.sh
 ### Validate signatures
 
 ```
-$ AUTH=user:pass  python aws_lambda.py validate_signature
-
-Looking at /buckets/monitor/collections/changes:
-Looking at /buckets/destination/collections/destination: Signature OK
-Looking at /buckets/blocklists/collections/addons: Signature OK
-Looking at /buckets/blocklists-preview/collections/addons: Signature OK
-Looking at /buckets/blocklists/collections/certificates: Signature OK
-Looking at /buckets/blocklists-preview/collections/certificates: Signature OK
-Looking at /buckets/blocklists/collections/plugins: Signature OK
-Looking at /buckets/blocklists-preview/collections/plugins: Signature OK
-Looking at /buckets/blocklists/collections/gfx: Signature OK
-Looking at /buckets/blocklists-preview/collections/gfx: Signature OK
+SERVER=https://firefox.settings.services.mozilla.com/v1/  python aws_lambda.py validate_signature
+Read collection list from /buckets/monitor/collections/changes
+01/17 /buckets/blocklists/collections/addons:  OK
+02/17 /buckets/blocklists-preview/collections/addons:  OK
+03/17 /buckets/blocklists/collections/certificates:  OK
+04/17 /buckets/blocklists-preview/collections/certificates:  OK
+05/17 /buckets/blocklists/collections/plugins:  OK
+06/17 /buckets/blocklists-preview/collections/plugins:  OK
+07/17 /buckets/security-state-preview/collections/intermediates:  SKIP
+08/17 /buckets/security-state/collections/intermediates:  SKIP
+09/17 /buckets/blocklists-preview/collections/gfx:  OK
+10/17 /buckets/blocklists/collections/qa:  OK
+11/17 /buckets/fingerprinting-defenses/collections/fonts:  OK
+12/17 /buckets/fingerprinting-defenses-preview/collections/fonts:  OK
+13/17 /buckets/focus-preview/collections/experiments:  SKIP
+14/17 /buckets/pinning-preview/collections/pins:  SKIP
+15/17 /buckets/focus/collections/experiments:  SKIP
+16/17 /buckets/pinning/collections/pins:  OK
+17/17 /buckets/blocklists/collections/gfx:  OK
 
 ```
 
