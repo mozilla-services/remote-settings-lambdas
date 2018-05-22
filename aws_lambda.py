@@ -21,7 +21,7 @@ from botocore.exceptions import ClientError
 from cryptography.hazmat.backends import default_backend as crypto_default_backend
 from cryptography.hazmat.primitives import serialization as crypto_serialization
 from cryptography.x509.oid import NameOID
-from kinto_http import Client
+from kinto_http import Client, KintoException
 
 
 def canonical_json(records, last_modified):
@@ -38,6 +38,10 @@ def unpem(pem):
 
 
 class ValidationError(Exception):
+    pass
+
+
+class RefreshError(Exception):
     pass
 
 
@@ -206,6 +210,8 @@ def refresh_signature(event, context):
     # Look at the signer configuration on the server.
     server_info = client.server_info()
 
+    errors = []
+
     for change in changes:
         # 0. Figure out which was the source collection of this signed collection.
         source = get_signed_source(server_info, change)
@@ -217,23 +223,33 @@ def refresh_signature(event, context):
                         bucket=source['bucket'],
                         collection=source['collection'],
                         auth=auth)
-        print('Looking at %s:' % client.get_endpoint('collection'), end=' ')
 
-        # 1. Grab collection information
-        collection_metadata = client.get_collection()['data']
-        last_modified = collection_metadata['last_modified']
+        try:
+            print('Looking at %s:' % client.get_endpoint('collection'), end=' ')
 
-        # 2. If status is signed
-        status = collection_metadata.get('status')
-        if status == 'signed':
+            # 1. Grab collection information
+            collection_metadata = client.get_collection()['data']
+            last_modified = collection_metadata['last_modified']
 
-            # 2.1. Trigger a signature
-            print('Trigger new signature: ', end='')
-            new_metadata = client.patch_collection(data={'status': 'to-sign'})
-            last_modified = new_metadata['data']['last_modified']
+            # 2. If status is signed
+            status = collection_metadata.get('status')
+            if status == 'signed':
 
-        # 3. Display the status of the collection
-        print('status=', status, 'at', timestamp_to_date(last_modified), '(', last_modified, ')')
+                # 2.1. Trigger a signature
+                print('Trigger new signature: ', end='')
+                new_metadata = client.patch_collection(data={'status': 'to-sign'})
+                last_modified = new_metadata['data']['last_modified']
+
+            # 3. Display the status of the collection
+            print('status=', status, 'at', timestamp_to_date(last_modified), '(', last_modified, ')')
+
+        except KintoException as e:
+            print(e)
+            errors.append(e)
+
+    if len(errors) > 0:
+        error_messages = [str(e) for e in errors]
+        raise RefreshError("\n" + "\n\n".join(error_messages))
 
 
 BLOCKPAGES_ARGS = ['server', 'bucket', 'addons-collection', 'plugins-collection']
