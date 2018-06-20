@@ -4,4 +4,3 @@ boto3
 cryptography
 ecdsa
 kinto-http
-requests

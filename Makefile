@@ -5,13 +5,11 @@ clean:
 
 virtualenv:
 	virtualenv venv --python=python3.6
-	venv/bin/pip install -r requirements.pip
+	venv/bin/pip install -r requirements.pip -c requirements.txt
 
-zip: clean virtualenv
-	zip lambda.zip aws_lambda.py
-	cd venv/lib/python3.6/site-packages/; zip -r ../../../../lambda.zip *
-	zip lambda.zip
-	venv/bin/pip freeze > requirements.txt
+zip:
+	docker build -t amo2kinto-lambda .
+	docker cp `docker create amo2kinto-lambda /bin/true`:/lambda.zip lambda.zip
 
 docs: virtualenv
 	venv/bin/pip install -r docs/requirements.txt
