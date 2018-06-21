@@ -3,7 +3,7 @@ RUN apt-get update && apt-get install -y zip
 WORKDIR /lambda
 
 # Add the requiremts
-ADD requirements.pip requirements.txt /tmp
+ADD requirements.pip requirements.txt /tmp/
 RUN pip install --quiet -t /lambda -r /tmp/requirements.pip -c /tmp/requirements.txt && \
     find /lambda -type d | xargs chmod ugo+rx && \
     find /lambda -type f | xargs chmod ugo+r
