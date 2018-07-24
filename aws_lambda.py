@@ -210,6 +210,9 @@ def refresh_signature(event, context):
     # Look at the signer configuration on the server.
     server_info = client.server_info()
 
+    # Check if the refresh feature is available.
+    has_refresh_feature = server_info["capabilities"]["signer"]["version"] > "3.3.0"
+
     errors = []
 
     for change in changes:
@@ -231,14 +234,19 @@ def refresh_signature(event, context):
             collection_metadata = client.get_collection()['data']
             last_modified = collection_metadata['last_modified']
 
-            # 2. If status is signed
-            status = collection_metadata.get('status')
-            if status == 'signed':
-
-                # 2.1. Trigger a signature
+            if has_refresh_feature:
+                # 2. Refresh!
                 print('Trigger new signature: ', end='')
-                new_metadata = client.patch_collection(data={'status': 'to-sign'})
+                new_metadata = client.patch_collection(data={'status': 'to-refresh'})
                 last_modified = new_metadata['data']['last_modified']
+
+            else:
+                # 2. Can only refresh if current status is "signed"
+                status = collection_metadata.get('status')
+                if status == 'signed':
+                    print('Trigger new signature: ', end='')
+                    new_metadata = client.patch_collection(data={'status': 'to-sign'})
+                    last_modified = new_metadata['data']['last_modified']
 
             # 3. Display the status of the collection
             print('status=', status, 'at', timestamp_to_date(last_modified), '(', last_modified, ')')
