@@ -9,7 +9,7 @@ virtualenv:
 
 zip:
 	docker build -t amo2kinto-lambda .
-	docker cp `docker create amo2kinto-lambda /bin/true`:/lambda.zip lambda.zip
+	docker cp `docker create amo2kinto-lambda /bin/true`:/lambda.zip amo2kinto-lambda-`git describe --tags --abbrev=0`.zip
 
 docs: virtualenv
 	venv/bin/pip install -r docs/requirements.txt
