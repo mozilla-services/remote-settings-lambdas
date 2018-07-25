@@ -211,7 +211,7 @@ def refresh_signature(event, context):
     server_info = client.server_info()
 
     # Check if the refresh feature is available.
-    has_refresh_feature = server_info["capabilities"]["signer"]["version"] > "3.3.0"
+    has_resign_feature = server_info["capabilities"]["signer"]["version"] > "3.3.0"
 
     errors = []
 
@@ -234,10 +234,10 @@ def refresh_signature(event, context):
             collection_metadata = client.get_collection()['data']
             last_modified = collection_metadata['last_modified']
 
-            if has_refresh_feature:
+            if has_resign_feature:
                 # 2. Refresh!
                 print('Trigger new signature: ', end='')
-                new_metadata = client.patch_collection(data={'status': 'to-refresh'})
+                new_metadata = client.patch_collection(data={'status': 'to-resign'})
                 last_modified = new_metadata['data']['last_modified']
 
             else:
