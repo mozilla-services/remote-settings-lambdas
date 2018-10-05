@@ -233,6 +233,7 @@ def refresh_signature(event, context):
             # 1. Grab collection information
             collection_metadata = client.get_collection()['data']
             last_modified = collection_metadata['last_modified']
+            status = collection_metadata.get('status')
 
             if has_resign_feature:
                 # 2. Refresh!
@@ -242,7 +243,6 @@ def refresh_signature(event, context):
 
             else:
                 # 2. Can only refresh if current status is "signed"
-                status = collection_metadata.get('status')
                 if status == 'signed':
                     print('Refresh signature: ', end='')
                     new_metadata = client.patch_collection(data={'status': 'to-sign'})
