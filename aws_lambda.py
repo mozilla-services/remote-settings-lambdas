@@ -5,6 +5,7 @@ import json
 import operator
 import os
 import requests
+import shutil
 import sys
 import time
 import uuid
@@ -293,6 +294,8 @@ def blockpages_generator(event, context):
     generator_main(args)
     print("Send results to s3", args)
     sync_to_s3(target_dir, **kwargs)
+    print("Clean-up")
+    shutil.rmtree(target_dir)
 
 
 AWS_REGION = "eu-central-1"
