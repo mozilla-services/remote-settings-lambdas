@@ -2,6 +2,7 @@ from __future__ import print_function
 import base64
 import hashlib
 import json
+import multiprocessing
 import operator
 import os
 import requests
@@ -46,6 +47,15 @@ class RefreshError(Exception):
     pass
 
 
+def download_records(client_collection):
+    (client, collection) = client_collection
+    # Download records
+    records = client.get_records(_sort='-last_modified',
+                                 _expected=collection["last_modified"])
+    timestamp = client.get_records_timestamp()
+    return (records, timestamp)
+
+
 def validate_signature(event, context):
     server_url = event['server']
     bucket = event.get('bucket', "monitor")
@@ -61,11 +71,24 @@ def validate_signature(event, context):
 
     checked_certificates = {}
 
-    for i, collection in enumerate(collections):
-        client = Client(server_url=server_url,
-                        bucket=collection['bucket'],
-                        collection=collection['collection'])
+    clients_collections = [
+        (Client(server_url=server_url,
+                bucket=collection['bucket'],
+                collection=collection['collection']),
+         collection)
+        for collection in collections
+    ]
 
+    # Grab records in parallel.
+    start_time = time.time()
+    pool = multiprocessing.Pool(processes=3)
+    collections_data = pool.map(download_records, clients_collections)
+    pool.close()
+    pool.join()
+    elapsed_time = time.time() - start_time
+    print(f"Downloaded all data in {elapsed_time:.2f}s")
+
+    for i, ((client, collection), (records, timestamp)) in enumerate(zip(clients_collections, collections_data)):
         endpoint = client.get_endpoint('collection')
         message = "{:02d}/{:02d} {}:  ".format(i + 1, len(collections), endpoint)
 
@@ -73,15 +96,11 @@ def validate_signature(event, context):
         dest_col = client.get_collection()['data']
         signed_on = dest_col['last_modified']
 
-        # 2. Grab records
-        records = client.get_records(_sort='-last_modified',
-                                     _expected=collection["last_modified"])
-        timestamp = client.get_records_timestamp()
-
-        # 3. Serialize
+        # 2. Serialize
         serialized = canonical_json(records, timestamp)
+        data = b'Content-Signature:\x00' + serialized.encode('utf-8')
 
-        # 4. Grab the signature
+        # 3. Grab the signature
         try:
             signature = dest_col['signature']
         except KeyError:
@@ -98,15 +117,14 @@ def validate_signature(event, context):
             signature = {}
 
         try:
-            # 5. Verify the signature with the public key
+            # 4. Verify the signature with the public key
             pubkey = signature['public_key'].encode('utf-8')
-            data = b'Content-Signature:\x00' + serialized.encode('utf-8')
             verifier = ecdsa.VerifyingKey.from_pem(pubkey)
             signature_bytes = base64.urlsafe_b64decode(signature['signature'])
             verified = verifier.verify(signature_bytes, data, hashfunc=hashlib.sha384)
             assert verified, "Signature verification failed"
 
-            # 6. Verify that the x5u certificate is valid (ie. that signature was well refreshed)
+            # 5. Verify that the x5u certificate is valid (ie. that signature was well refreshed)
             x5u = signature['x5u']
             if x5u not in checked_certificates:
                 resp = requests.get(signature['x5u'])
@@ -119,7 +137,7 @@ def validate_signature(event, context):
                 assert subject.endswith('.content-signature.mozilla.org'), "invalid subject name"
                 checked_certificates[x5u] = cert
 
-            # 7. Check that public key matches the certificate one.
+            # 6. Check that public key matches the certificate one.
             cert = checked_certificates[x5u]
             cert_pubkey_pem = cert.public_key().public_bytes(crypto_serialization.Encoding.PEM,
                                                              crypto_serialization.PublicFormat.SubjectPublicKeyInfo)
