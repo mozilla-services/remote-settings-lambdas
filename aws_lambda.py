@@ -74,7 +74,8 @@ def validate_signature(event, context):
         signed_on = dest_col['last_modified']
 
         # 2. Grab records
-        records = client.get_records(_sort='-last_modified')
+        records = client.get_records(_sort='-last_modified',
+                                     _expected=collection["last_modified"])
         timestamp = client.get_records_timestamp()
 
         # 3. Serialize
