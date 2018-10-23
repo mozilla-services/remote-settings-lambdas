@@ -1,5 +1,6 @@
 from __future__ import print_function
 import base64
+import functools
 import hashlib
 import json
 import multiprocessing
@@ -47,13 +48,18 @@ class RefreshError(Exception):
     pass
 
 
-def download_records(client_collection):
-    (client, collection) = client_collection
-    # Download records
+def download_collection_data(server_url, collection):
+    client = Client(server_url=server_url,
+                    bucket=collection['bucket'],
+                    collection=collection['collection'])
+    endpoint = client.get_endpoint('collection')
+    # Collection metadata
+    metadata = client.get_collection()['data']
+    # Download records with cache busting
     records = client.get_records(_sort='-last_modified',
                                  _expected=collection["last_modified"])
     timestamp = client.get_records_timestamp()
-    return (records, timestamp)
+    return (collection, endpoint, metadata, records, timestamp)
 
 
 def validate_signature(event, context):
@@ -65,48 +71,40 @@ def validate_signature(event, context):
                     collection=collection)
     print('Read collection list from {}'.format(client.get_endpoint('collection')))
 
-    collections = client.get_records()
-
     error_messages = []
 
     checked_certificates = {}
 
-    clients_collections = [
-        (Client(server_url=server_url,
-                bucket=collection['bucket'],
-                collection=collection['collection']),
-         collection)
-        for collection in collections
-    ]
+    collections = client.get_records()
 
-    # Grab records in parallel.
+    # Grab server data in parallel.
     start_time = time.time()
     pool = multiprocessing.Pool(processes=3)
-    collections_data = pool.map(download_records, clients_collections)
+    collections_data = pool.map(functools.partial(download_collection_data, server_url), collections)
     pool.close()
     pool.join()
     elapsed_time = time.time() - start_time
     print(f"Downloaded all data in {elapsed_time:.2f}s")
 
-    for i, ((client, collection), (records, timestamp)) in enumerate(zip(clients_collections, collections_data)):
-        endpoint = client.get_endpoint('collection')
+    for i, (collection, endpoint, metadata, records, timestamp) in enumerate(collections_data):
+        start_time = time.time()
+
         message = "{:02d}/{:02d} {}:  ".format(i + 1, len(collections), endpoint)
 
-        # 1. Grab collection information
-        dest_col = client.get_collection()['data']
-        signed_on = dest_col['last_modified']
-
-        # 2. Serialize
+        # 1. Serialize
         serialized = canonical_json(records, timestamp)
         data = b'Content-Signature:\x00' + serialized.encode('utf-8')
 
-        # 3. Grab the signature
+        # 2. Grab the signature
         try:
-            signature = dest_col['signature']
+            signature = metadata['signature']
         except KeyError:
             # Destination has no signature attribute.
             # Be smart and check if it was just configured.
             # See https://github.com/mozilla-services/amo2kinto-lambda/issues/31
+            client = Client(server_url=server_url,
+                            bucket=collection['bucket'],
+                            collection=collection['collection'])
             with_tombstones = client.get_records(_since=1)
             if len(with_tombstones) == 0:
                 # It never contained records. Let's assume it is newly configured.
@@ -117,14 +115,14 @@ def validate_signature(event, context):
             signature = {}
 
         try:
-            # 4. Verify the signature with the public key
+            # 3. Verify the signature with the public key
             pubkey = signature['public_key'].encode('utf-8')
             verifier = ecdsa.VerifyingKey.from_pem(pubkey)
             signature_bytes = base64.urlsafe_b64decode(signature['signature'])
             verified = verifier.verify(signature_bytes, data, hashfunc=hashlib.sha384)
             assert verified, "Signature verification failed"
 
-            # 5. Verify that the x5u certificate is valid (ie. that signature was well refreshed)
+            # 4. Verify that the x5u certificate is valid (ie. that signature was well refreshed)
             x5u = signature['x5u']
             if x5u not in checked_certificates:
                 resp = requests.get(signature['x5u'])
@@ -137,19 +135,21 @@ def validate_signature(event, context):
                 assert subject.endswith('.content-signature.mozilla.org'), "invalid subject name"
                 checked_certificates[x5u] = cert
 
-            # 6. Check that public key matches the certificate one.
+            # 5. Check that public key matches the certificate one.
             cert = checked_certificates[x5u]
             cert_pubkey_pem = cert.public_key().public_bytes(crypto_serialization.Encoding.PEM,
                                                              crypto_serialization.PublicFormat.SubjectPublicKeyInfo)
             assert unpem(cert_pubkey_pem) == pubkey, "signature public key does not match certificate"
 
-            message += 'OK'
+            elapsed_time = time.time() - start_time
+            message += f'OK ({elapsed_time:.2f}s)'
             print(message)
         except Exception as e:
             message += '⚠ BAD Signature ⚠'
             print(message)
 
             # Gather details for the global exception that will be raised.
+            signed_on = metadata['last_modified']
             signed_on_date = timestamp_to_date(signed_on)
             timestamp_date = timestamp_to_date(timestamp)
             error_message = (
