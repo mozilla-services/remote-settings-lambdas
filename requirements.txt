@@ -149,3 +149,6 @@ pyparsing==2.2.0 \
     --hash=sha256:b8b3117ed9bdf45e14dcc89345ce638ec7e0e29b2b579fa1ecf32ce45ebac8a5 \
     --hash=sha256:e4d45427c6e20a59bf4f88c639dcc03ce30d193112047f94012102f235853a58 \
     --hash=sha256:fee43f17a9c4087e7ed1605bd6df994c6173c1e977d7ade7b651292fab2bd010
+kinto-signer==3.3.5 \
+    --hash=sha256:9f591310a2d8f90a8af4f27c50e39e966abf64f4ae4d6e1306b6fa60ddbd46cf \
+    --hash=sha256:da2bb1b3ec7bb160bb435729028b1bfc3ee3ed9af9e29d472d693249a91424ee
