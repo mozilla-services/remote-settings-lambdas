@@ -4,11 +4,10 @@ WORKDIR /lambda
 
 # Install the requirements.
 # Since we don't want to install the whole Pyramid ecosystem just to reuse its canonical
-# serialization, install it with ``--no-deps`` and truncates its __init__ :)
+# serialization, install it with ``--no-deps``.
 ADD requirements.pip requirements.txt /tmp/
 RUN pip install --quiet --target /lambda -r /tmp/requirements.pip -c /tmp/requirements.txt && \
     pip install --quiet --target /lambda --no-deps kinto-signer && \
-    truncate -s 0 /lambda/kinto_signer/__init__.py && \
     find /lambda -type d | xargs chmod ugo+rx && \
     find /lambda -type f | xargs chmod ugo+r
 
