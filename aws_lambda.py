@@ -23,13 +23,7 @@ from cryptography.hazmat.backends import default_backend as crypto_default_backe
 from cryptography.hazmat.primitives import serialization as crypto_serialization
 from cryptography.x509.oid import NameOID
 from kinto_http import Client, KintoException
-
-
-def canonical_json(records, last_modified):
-    records = (r for r in records if not r.get('deleted', False))
-    records = sorted(records, key=operator.itemgetter('id'))
-    payload = {'data': records, 'last_modified': '%s' % last_modified}
-    return json.dumps(payload, sort_keys=True, separators=(',', ':'))
+from kinto_signer.serializer import canonical_json
 
 
 def unpem(pem):
