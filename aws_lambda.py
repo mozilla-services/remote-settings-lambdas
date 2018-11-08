@@ -95,7 +95,7 @@ def validate_signature(event, context):
         except KeyError:
             # Destination has no signature attribute.
             # Be smart and check if it was just configured.
-            # See https://github.com/mozilla-services/amo2kinto-lambda/issues/31
+            # See https://github.com/mozilla-services/remote-settings-lambdas/issues/31
             client = Client(server_url=server_url,
                             bucket=collection['bucket'],
                             collection=collection['collection'])
