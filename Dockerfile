@@ -7,7 +7,7 @@ WORKDIR /lambda
 # serialization, install it with ``--no-deps``.
 ADD requirements.pip requirements.txt /tmp/
 RUN pip install --quiet --target /lambda -r /tmp/requirements.pip -c /tmp/requirements.txt && \
-    pip install --quiet --target /lambda --no-deps kinto-signer && \
+    pip install --quiet --target /lambda --no-deps kinto-signer -c /tmp/requirements.txt && \
     find /lambda -type d | xargs chmod ugo+rx && \
     find /lambda -type f | xargs chmod ugo+r
 
