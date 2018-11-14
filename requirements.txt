@@ -115,8 +115,8 @@ lxml==4.2.1 \
 MarkupSafe==1.0 \
     --hash=sha256:a6be69091dac236ea9c6bc7d012beab42010fa914c459791d627dad4910eb665
 pkg-resources==0.0.0
-pycparser==2.18 \
-    --hash=sha256:99a8ca03e29851d96616ad0404b4aad7d9ee16f25c9f9708a11faf2810f7b226
+pycparser==2.19 \
+    --hash=sha256:a988718abfad80b6b157acce7bf130a30876d27603738ac39f140993246b25b3
 python-dateutil==2.7.3 \
     --hash=sha256:1adb80e7a782c12e52ef9a8182bebeb73f1d7e24e374397af06fb4956c8dc5c0 \
     --hash=sha256:e27001de32f627c22380a688bcc43ce83504a7bc5da472209b4c70f02829f0b8
