@@ -80,9 +80,9 @@ Jinja2==2.10 \
 jmespath==0.9.3 \
     --hash=sha256:6a81d4c9aa62caf061cb517b4d9ad1dd300374cd4706997aff9cd6aedd61fc64 \
     --hash=sha256:f11b4461f425740a1d908e9a3f7365c3d2e569f6ca68a2ff8bc5bcd9676edd63
-kinto-http==9.1.2 \
-    --hash=sha256:dce1d39bad5b7323b43a2e8c8116b2dd02706e4dfa9d1554d4e573cdb9e08f01 \
-    --hash=sha256:e223e965f96e92cf916f473b4112fc4356698a553885f6dd49e99da8df00c404
+kinto-http==10.1.1 \
+    --hash=sha256:ceea5cad51a7cffb4fa0474ec4ef611f01805443b81cc3034e96b95985a51b83 \
+    --hash=sha256:aa5ceb9d98093c6d0aa5b89af11221f5f6be8f51e6871e0626fd2a6e492934b1
 lxml==4.2.1 \
     --hash=sha256:01c45df6d90497c20aa2a07789a41941f9a1029faa30bf725fc7f6d515b1afe9 \
     --hash=sha256:0c9fef4f8d444e337df96c54544aeb85b7215b2ed7483bb6c35de97ac99f1bcd \
