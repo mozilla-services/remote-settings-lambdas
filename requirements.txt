@@ -144,9 +144,9 @@ MarkupSafe==1.1.0 \
 pkg-resources==0.0.0
 pycparser==2.19 \
     --hash=sha256:a988718abfad80b6b157acce7bf130a30876d27603738ac39f140993246b25b3
-python-dateutil==2.7.3 \
-    --hash=sha256:1adb80e7a782c12e52ef9a8182bebeb73f1d7e24e374397af06fb4956c8dc5c0 \
-    --hash=sha256:e27001de32f627c22380a688bcc43ce83504a7bc5da472209b4c70f02829f0b8
+python-dateutil==2.7.5 \
+    --hash=sha256:063df5763652e21de43de7d9e00ccf239f953a832941e37be541614732cdfc93 \
+    --hash=sha256:88f9287c0174266bb0d8cedd395cfba9c58e87e5ad86b2ce58859bc11be3cf02
 requests==2.20.1 \
     --hash=sha256:65b3a120e4329e33c9889db89c80976c5272f56ea92d3e74da8a463992e3ff54 \
     --hash=sha256:ea881206e59f41dbd0bd445437d792e43906703fff75ca8ff43ccdb11f33f263
