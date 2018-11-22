@@ -57,9 +57,19 @@ Looking at /buckets/staging/collections/gfx: Trigger new signature: signed at 20
 ### Copy records
 
 ```
-$ SOURCE_BUCKET=blocklists SOURCE_COLLECTION=certificates DEST_BUCKET=security-state DEST_COLLECTION=onecrl  python aws_lambda.py copy_records
+$ COPY_RECORDS_AUTH=user:pass COPY_RECORDS_SOURCE_BUCKET=blocklists COPY_RECORDS_SOURCE_COLLECTION=certificates COPY_RECORDS_DEST_BUCKET=security-state COPY_RECORDS_DEST_COLLECTION=onecrl  python3 aws_lambda.py copy_records
 
-Done. 12 changes published and signed.
+Batch #0: PUT /buckets/security-state/collections/onecrl/records/003234b2-f425-eae6-9596-040747dab2b9 - 201
+Batch #1: PUT /buckets/security-state/collections/onecrl/records/00ac492e-04f7-ee6d-5fd2-bb12b97a4b7f - 201
+Batch #2: DELETE /buckets/security-state/collections/onecrl/records/23 - 200
+Done. 3 changes applied.
+
+```
+
+```
+$ COPY_RECORDS_AUTH=user:pass COPY_RECORDS_SOURCE_BUCKET=blocklists COPY_RECORDS_SOURCE_COLLECTION=certificates COPY_RECORDS_DEST_BUCKET=security-state COPY_RECORDS_DEST_COLLECTION=onecrl  python3 aws_lambda.py copy_records
+Records are in sync. Nothing to do.
+
 ```
 
 

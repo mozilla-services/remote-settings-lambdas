@@ -189,12 +189,12 @@ def copy_records(event, context):
     collection.
     """
     source_server_url = event['server']
-    source_auth = tuple(os.getenv("COPY_RECORDS_AUTH").split(':', 1))
-    source_bucket = os.env['COPY_RECORDS_SOURCE_BUCKET']
-    source_collection = os.env['COPY_RECORDS_DEST_COLLECTION']
+    source_auth = os.environ["COPY_RECORDS_AUTH"]
+    source_bucket = os.environ['COPY_RECORDS_SOURCE_BUCKET']
+    source_collection = os.environ['COPY_RECORDS_SOURCE_COLLECTION']
 
     dest_server_url = os.getenv('COPY_RECORDS_DEST_SERVER', source_server_url)
-    dest_auth = tuple(os.getenv("COPY_RECORDS_DEST_AUTH").split(':', 1), source_auth)
+    dest_auth = os.getenv("COPY_RECORDS_DEST_AUTH", source_auth)
     dest_bucket = os.getenv('COPY_RECORDS_DEST_BUCKET', source_bucket)
     dest_collection = os.getenv('COPY_RECORDS_DEST_COLLECTION', source_collection)
 
@@ -204,16 +204,17 @@ def copy_records(event, context):
     source_client = Client(server_url=source_server_url,
                            bucket=source_bucket,
                            collection=source_collection,
-                           auth=source_auth)
+                           auth=tuple(source_auth.split(':', 1)))
     dest_client = Client(server_url=dest_server_url,
                          bucket=dest_bucket,
                          collection=dest_collection,
-                         auth=dest_auth)
+                         auth=tuple(dest_auth.split(':', 1)))
 
     source_timestamp = source_client.get_records_timestamp()
     dest_timestamp = dest_client.get_records_timestamp()
-    if source_timestamp == dest_timestamp:
+    if source_timestamp <= dest_timestamp:
         print("Records are in sync. Nothing to do.")
+        return
 
     source_records = source_client.get_records()
     dest_records_by_id = {r["id"]: r for r in dest_client.get_records()}
@@ -222,16 +223,16 @@ def copy_records(event, context):
         # Create or update the destination records.
         for r in source_records:
             dest_record = dest_records_by_id.pop(r["id"], None)
-            if dest_record is None or r["last_modified"] > dest_record["last_modified"]:
+            if dest_record is None:
+                dest_batch.create_record(data=r)
+            elif r["last_modified"] > dest_record["last_modified"]:
                 dest_batch.update_record(data=r)
         # Delete the records missing from source.
         for r in dest_records_by_id.values():
             dest_batch.delete_record(id=r["id"])
 
-    ops_count = len(dest_batch.results())
-
     # If destination has signing, request review or auto-approve changes.
-    server_info = dest_client.get_server_info()
+    server_info = dest_client.server_info()
     signer_config = server_info["capabilities"].get("signer", {})
     signed_dest = [r for r in signer_config.get("resources", [])
                    if r["source"]["bucket"] == dest_bucket and
@@ -239,7 +240,7 @@ def copy_records(event, context):
                     r["source"]["collection"] == dest_collection)]
 
     if len(signed_dest) == 0:
-        print(f"Done. {ops_count} changes copied.")
+        print(f"Done. {ops_count} changes applied.")
         return
 
     has_autoapproval = (
@@ -249,7 +250,7 @@ def copy_records(event, context):
     if has_autoapproval:
         # Approve the changes.
         dest_client.patch_collection(data={"status": "to-sign"})
-        print(f"Done. {ops_count} changes published and signed.")
+        print(f"Done. {ops_count} changes applied and signed.")
     else:
         # Request review.
         dest_client.patch_collection(data={"status": "to-review"})
