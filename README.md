@@ -54,6 +54,15 @@ Looking at /buckets/staging/collections/gfx: Trigger new signature: signed at 20
 
 ```
 
+### Copy records
+
+```
+$ SOURCE_BUCKET=blocklists SOURCE_COLLECTION=certificates DEST_BUCKET=security-state DEST_COLLECTION=onecrl  python aws_lambda.py copy_records
+
+Done. 12 changes published and signed.
+```
+
+
 ## Releasing
 
 You must run this on a linux x86_64 arch, the same as Amazon Lambda.
