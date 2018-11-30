@@ -183,29 +183,28 @@ def validate_changes_collection(event, context):
         raise ValueError("One of the collection did not validate.")
 
 
-def copy_records(event, context):
+def backport_records(event, context):
     """
     Note: This lambda is not safe if other user can interact with the destination
     collection.
     """
-    source_server_url = event['server']
-    source_auth = os.environ["COPY_RECORDS_AUTH"]
-    source_bucket = os.environ['COPY_RECORDS_SOURCE_BUCKET']
-    source_collection = os.environ['COPY_RECORDS_SOURCE_COLLECTION']
+    server_url = event['server']
+    source_auth = os.environ["BACKPORT_RECORDS_SOURCE_AUTH"]
+    source_bucket = os.environ['BACKPORT_RECORDS_SOURCE_BUCKET']
+    source_collection = os.environ['BACKPORT_RECORDS_SOURCE_COLLECTION']
 
-    dest_server_url = os.getenv('COPY_RECORDS_DEST_SERVER', source_server_url)
-    dest_auth = os.getenv("COPY_RECORDS_DEST_AUTH", source_auth)
-    dest_bucket = os.getenv('COPY_RECORDS_DEST_BUCKET', source_bucket)
-    dest_collection = os.getenv('COPY_RECORDS_DEST_COLLECTION', source_collection)
+    dest_auth = os.getenv("BACKPORT_RECORDS_DEST_AUTH", source_auth)
+    dest_bucket = os.getenv('BACKPORT_RECORDS_DEST_BUCKET', source_bucket)
+    dest_collection = os.getenv('BACKPORT_RECORDS_DEST_COLLECTION', source_collection)
 
     if source_bucket == dest_bucket and source_collection == dest_collection:
         raise ValueError("Cannot copy records: destination is identical to source")
 
-    source_client = Client(server_url=source_server_url,
+    source_client = Client(server_url=server_url,
                            bucket=source_bucket,
                            collection=source_collection,
                            auth=tuple(source_auth.split(':', 1)))
-    dest_client = Client(server_url=dest_server_url,
+    dest_client = Client(server_url=server_url,
                          bucket=dest_bucket,
                          collection=dest_collection,
                          auth=tuple(dest_auth.split(':', 1)))
