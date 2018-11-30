@@ -1,9 +1,9 @@
 from __future__ import print_function
 import base64
+import concurrent.futures
 import functools
 import hashlib
 import json
-import multiprocessing
 import operator
 import os
 import requests
@@ -26,6 +26,9 @@ from cryptography.hazmat.primitives import serialization as crypto_serialization
 from cryptography.x509.oid import NameOID
 from kinto_http import Client, KintoException
 from kinto_signer.serializer import canonical_json
+
+
+PARALLEL_REQUESTS = 4
 
 
 def unpem(pem):
@@ -73,10 +76,12 @@ def validate_signature(event, context):
 
     # Grab server data in parallel.
     start_time = time.time()
-    pool = multiprocessing.Pool(processes=3)
-    collections_data = pool.map(functools.partial(download_collection_data, server_url), collections)
-    pool.close()
-    pool.join()
+    collections_data = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=PARALLEL_REQUESTS) as executor:
+        futures = [executor.submit(download_collection_data, server_url, c)
+                   for c in collections]
+        for future in concurrent.futures.as_completed(futures):
+            collections_data.append(future.result())
     elapsed_time = time.time() - start_time
     print(f"Downloaded all data in {elapsed_time:.2f}s")
 
