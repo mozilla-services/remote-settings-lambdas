@@ -54,6 +54,41 @@ Looking at /buckets/staging/collections/gfx: Trigger new signature: signed at 20
 
 ```
 
+### Backport records
+
+Backport the changes from one collection to another. This is useful if the new collection (*source*) has become the source of truth,
+but there are still clients pulling data from the old collection (*destination*).
+
+Environment config:
+
+- ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
+- ``BACKPORT_RECORDS_SOURCE_AUTH``: authentication for source collection
+- ``BACKPORT_RECORDS_DEST_AUTH``: authentication for destination collection (default: same as source)
+- ``BACKPORT_RECORDS_SOURCE_BUCKET``: bucket id to read records from
+- ``BACKPORT_RECORDS_SOURCE_COLLECTION``: collection id to read records from
+- ``BACKPORT_RECORDS_DEST_BUCKET``: bucket id to copy records to (default: same as source bucket)
+- ``BACKPORT_RECORDS_DEST_COLLECTION``:collection id to copy records to (default: same as source collection)
+
+Example:
+
+```
+$ BACKPORT_RECORDS_SOURCE_AUTH=user:pass BACKPORT_RECORDS_SOURCE_BUCKET=blocklists BACKPORT_RECORDS_SOURCE_COLLECTION=certificates BACKPORT_RECORDS_DEST_BUCKET=security-state BACKPORT_RECORDS_DEST_COLLECTION=onecrl  python3 aws_lambda.py backport_records
+
+Batch #0: PUT /buckets/security-state/collections/onecrl/records/003234b2-f425-eae6-9596-040747dab2b9 - 201
+Batch #1: PUT /buckets/security-state/collections/onecrl/records/00ac492e-04f7-ee6d-5fd2-bb12b97a4b7f - 201
+Batch #2: DELETE /buckets/security-state/collections/onecrl/records/23 - 200
+Done. 3 changes applied.
+
+```
+
+```
+$ BACKPORT_RECORDS_SOURCE_AUTH=user:pass BACKPORT_RECORDS_SOURCE_BUCKET=blocklists BACKPORT_RECORDS_SOURCE_COLLECTION=certificates BACKPORT_RECORDS_DEST_BUCKET=security-state BACKPORT_RECORDS_DEST_COLLECTION=onecrl  python3 aws_lambda.py backport_records
+
+Records are in sync. Nothing to do.
+
+```
+
+
 ## Releasing
 
 You must run this on a linux x86_64 arch, the same as Amazon Lambda.
