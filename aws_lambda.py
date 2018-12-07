@@ -196,13 +196,13 @@ def backport_records(event, context):
     collection.
     """
     server_url = event['server']
-    source_auth = os.environ["BACKPORT_RECORDS_SOURCE_AUTH"]
-    source_bucket = os.environ['BACKPORT_RECORDS_SOURCE_BUCKET']
-    source_collection = os.environ['BACKPORT_RECORDS_SOURCE_COLLECTION']
+    source_auth = event.get("backport_records_source_auth") or os.environ["BACKPORT_RECORDS_SOURCE_AUTH"]
+    source_bucket = event.get("backport_records_source_bucket") or os.environ['BACKPORT_RECORDS_SOURCE_BUCKET']
+    source_collection = event.get("backport_records_source_collection") or os.environ['BACKPORT_RECORDS_SOURCE_COLLECTION']
 
-    dest_auth = os.getenv("BACKPORT_RECORDS_DEST_AUTH", source_auth)
-    dest_bucket = os.getenv('BACKPORT_RECORDS_DEST_BUCKET', source_bucket)
-    dest_collection = os.getenv('BACKPORT_RECORDS_DEST_COLLECTION', source_collection)
+    dest_auth = event.get("backport_records_dest_auth", os.getenv("BACKPORT_RECORDS_DEST_AUTH", source_auth))
+    dest_bucket = event.get("backport_records_dest_bucket", os.getenv('BACKPORT_RECORDS_DEST_BUCKET', source_bucket))
+    dest_collection = event.get("backport_records_dest_collection", os.getenv('BACKPORT_RECORDS_DEST_COLLECTION', source_collection))
 
     if source_bucket == dest_bucket and source_collection == dest_collection:
         raise ValueError("Cannot copy records: destination is identical to source")
