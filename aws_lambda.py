@@ -237,6 +237,8 @@ def backport_records(event, context):
         for r in dest_records_by_id.values():
             dest_batch.delete_record(id=r["id"])
 
+    ops_count = len(dest_batch.results())
+
     # If destination has signing, request review or auto-approve changes.
     server_info = dest_client.server_info()
     signer_config = server_info["capabilities"].get("signer", {})
