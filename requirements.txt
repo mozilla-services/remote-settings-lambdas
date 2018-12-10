@@ -7,9 +7,9 @@ asn1crypto==0.24.0 \
 boto3==1.9.59 \
     --hash=sha256:730c585f7f8031993bd6e3a4d8d0ba62a59efdff2fe38ee073349223f9d6a4b7 \
     --hash=sha256:1bb0505de52201ed2f3bafe3b4b1539971a4b08ff048b9d804f6e04f017701fb
-botocore==1.12.60 \
-    --hash=sha256:ad523b7e530b8fd51b8207ad1c981852399ec8f21b2c32311139daa8b2cbb55e \
-    --hash=sha256:e298eaa3883d5aa62a21e84b68a3b4d47b582fffdb93efefe53144d2ed9a824c
+botocore==1.12.62 \
+    --hash=sha256:1d1150e3ffd5e7a71f67b19c6a537bcd06d04ce5f1cd2bb0bb7b7801f20bb8fa \
+    --hash=sha256:67ebafe2d0d6a37b62033bbc78786fdada02c38535f83d74313dc0dc281bf87d
 certifi==2018.11.29 \
     --hash=sha256:993f830721089fef441cdfeb4b2c8c9df86f0c63239f06bd025a76a7daddb033 \
     --hash=sha256:47f9c83ef4c0c621eaef743f133f09fa8a74a9b75f037e8624f83bd1b6626cb7
