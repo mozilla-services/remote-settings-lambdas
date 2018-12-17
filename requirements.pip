@@ -3,4 +3,4 @@ botocore
 boto3
 cryptography
 ecdsa
-kinto-http
+kinto-http>=10.2.0

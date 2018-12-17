@@ -49,8 +49,8 @@ def download_collection_data(server_url, collection):
                     bucket=collection['bucket'],
                     collection=collection['collection'])
     endpoint = client.get_endpoint('collection')
-    # Collection metadata
-    metadata = client.get_collection()['data']
+    # Collection metadata with cache busting
+    metadata = client.get_collection(_expected=collection["last_modified"])['data']
     # Download records with cache busting
     records = client.get_records(_sort='-last_modified',
                                  _expected=collection["last_modified"])
