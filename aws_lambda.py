@@ -3,6 +3,7 @@ import base64
 import concurrent.futures
 import functools
 import hashlib
+import inspect
 import json
 import operator
 import os
@@ -28,6 +29,32 @@ from kinto_signer.serializer import canonical_json
 
 
 PARALLEL_REQUESTS = 4
+
+
+def command(func):
+    """Decorator to mark functions of this module as a CLI *command* for the help output.
+    """
+    func.__is_command = True
+    return func
+
+
+@command
+def help(**kwargs):
+    """Show this help.
+    """
+    def white_bold(s):
+        return f"\033[1m\x1B[37m{s}\033[0;0m"
+
+    mod_members = sorted([(name, obj) for name, obj in inspect.getmembers(sys.modules[__name__])])
+    commands = [f for _, f in mod_members if hasattr(f, "__is_command")]
+    func_listed = "\n - ".join([f"{white_bold(f.__name__)}: {f.__doc__}" for f in commands])
+    print(f"""
+Remote Settings lambdas.
+
+Available commands:
+
+ - {func_listed}
+    """)
 
 
 def unpem(pem):
@@ -58,7 +85,10 @@ def download_collection_data(server_url, collection):
     return (collection, endpoint, metadata, records, timestamp)
 
 
-def validate_signature(event, context):
+@command
+def validate_signature(event, **kwargs):
+    """Validate the signature of each collection.
+    """
     server_url = event['server']
     bucket = event.get('bucket', "monitor")
     collection = event.get('collection', "changes")
@@ -162,7 +192,10 @@ def validate_signature(event, context):
         raise ValidationError("\n" + "\n\n".join(error_messages))
 
 
-def validate_changes_collection(event, context):
+@command
+def validate_changes_collection(event, **kwargs):
+    """Validate the changes monitor endpoint entries.
+    """
     # 1. Grab the changes collection
     server_url = event['server']
     bucket = event.get('bucket', "monitor")
@@ -190,10 +223,9 @@ def validate_changes_collection(event, context):
         raise ValueError("One of the collection did not validate.")
 
 
-def backport_records(event, context):
-    """
-    Note: This lambda is not safe if other user can interact with the destination
-    collection.
+@command
+def backport_records(event, **kwargs):
+    """Backport records creations, updates and deletions from one collection to another.
     """
     server_url = event['server']
     source_auth = event.get("backport_records_source_auth") or os.environ["BACKPORT_RECORDS_SOURCE_AUTH"]
@@ -287,7 +319,10 @@ def get_signed_source(server_info, change):
             }
 
 
-def refresh_signature(event, context):
+@command
+def refresh_signature(event, **kwargs):
+    """Refresh the signatures of each collection.
+    """
     server_url = event['server']
     auth = tuple(os.getenv("REFRESH_SIGNATURE_AUTH").split(':', 1))
 
@@ -356,17 +391,10 @@ def refresh_signature(event, context):
 BLOCKPAGES_ARGS = ['server', 'bucket', 'addons-collection', 'plugins-collection']
 
 
+@command
 def blockpages_generator(event, context):
-    """Event will contain the blockpages_generator parameters:
-         - server: The kinto server to read data from.
-                   (i.e: https://kinto-writer.services.mozilla.com/)
-         - aws_region: S3 bucket AWS Region.
-         - bucket_name: S3 bucket name.
-         - bucket: The readonly public and signed bucket.
-         - addons-collection: The add-ons collection name.
-         - plugins-collection: The plugin collection name.
+    """Generate the blocklist HTML pages and upload them to S3.
     """
-
     args = []
     kwargs = {}
 
@@ -423,8 +451,11 @@ if __name__ == "__main__":
     context = None
     try:
         function = globals()[sys.argv[1]]
+    except IndexError as e:
+        help()
+        sys.exit(1)
     except KeyError as e:
         print("Unknown function %s" % e)
         sys.exit(1)
 
-    function(event, context)
+    function(event=event, context=context)
