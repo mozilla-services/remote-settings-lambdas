@@ -59,6 +59,8 @@ Looking at /buckets/staging/collections/gfx: Trigger new signature: signed at 20
 Backport the changes from one collection to another. This is useful if the new collection (*source*) has become the source of truth,
 but there are still clients pulling data from the old collection (*destination*).
 
+> Note: This lambda is not safe if other user can interact with the destination collection.
+
 Environment config:
 
 - ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
