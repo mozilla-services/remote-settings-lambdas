@@ -45,8 +45,7 @@ def help(**kwargs):
     def white_bold(s):
         return f"\033[1m\x1B[37m{s}\033[0;0m"
 
-    mod_members = sorted([(name, obj) for name, obj in inspect.getmembers(sys.modules[__name__])])
-    commands = [f for _, f in mod_members if hasattr(f, "__is_command")]
+    commands = [f for _, f in sorted(inspect.getmembers(sys.modules[__name__])) if hasattr(f, "__is_command")]
     func_listed = "\n - ".join([f"{white_bold(f.__name__)}: {f.__doc__}" for f in commands])
     print(f"""
 Remote Settings lambdas.
