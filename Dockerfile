@@ -20,3 +20,7 @@ RUN find /lambda -type d | xargs chmod ugo+rx && \
 RUN python -m compileall -q /lambda
 
 RUN zip --quiet -9r /lambda.zip .
+
+# Add entrypoint
+ENTRYPOINT ["./aws_lambda.py"]
+CMD ["help"]
