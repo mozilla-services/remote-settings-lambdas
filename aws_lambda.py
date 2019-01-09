@@ -3,35 +3,34 @@ import base64
 import concurrent.futures
 import functools
 import hashlib
-import inspect
 import json
 import operator
 import os
 import requests
 import shutil
 import sys
-import tempfile
 import time
 from datetime import datetime
+from tempfile import mkdtemp
 
 import boto3
 import boto3.session
 import cryptography
 import cryptography.x509
 import ecdsa
-from amo2kinto import generator as amo_generator
+from amo2kinto.generator import main as generator_main
 from botocore.exceptions import ClientError
-from cryptography.hazmat import backends as crypto_backends
+from cryptography.hazmat.backends import default_backend as crypto_default_backend
 from cryptography.hazmat.primitives import serialization as crypto_serialization
 from cryptography.x509.oid import NameOID
 from kinto_http import Client, KintoException
-from kinto_signer import serializer as kinto_serializer
+from kinto_signer.serializer import canonical_json
 
 
 PARALLEL_REQUESTS = 4
 
 
-def _unpem(pem):
+def unpem(pem):
     # Join lines and strip -----BEGIN/END PUBLIC KEY----- header/footer
     return b"".join([l.strip() for l in pem.split(b"\n")
                      if l and not l.startswith(b"-----")])
@@ -45,7 +44,7 @@ class RefreshError(Exception):
     pass
 
 
-def _download_collection_data(server_url, collection):
+def download_collection_data(server_url, collection):
     client = Client(server_url=server_url,
                     bucket=collection['bucket'],
                     collection=collection['collection'])
@@ -60,8 +59,6 @@ def _download_collection_data(server_url, collection):
 
 
 def validate_signature(event, context):
-    """Validate the signature of each collection.
-    """
     server_url = event['server']
     bucket = event.get('bucket', "monitor")
     collection = event.get('collection', "changes")
@@ -80,7 +77,7 @@ def validate_signature(event, context):
     start_time = time.time()
     collections_data = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=PARALLEL_REQUESTS) as executor:
-        futures = [executor.submit(_download_collection_data, server_url, c)
+        futures = [executor.submit(download_collection_data, server_url, c)
                    for c in collections]
         for future in concurrent.futures.as_completed(futures):
             collections_data.append(future.result())
@@ -93,7 +90,7 @@ def validate_signature(event, context):
         message = "{:02d}/{:02d} {}:  ".format(i + 1, len(collections), endpoint)
 
         # 1. Serialize
-        serialized = signer_serializer.canonical_json(records, timestamp)
+        serialized = canonical_json(records, timestamp)
         data = b'Content-Signature:\x00' + serialized.encode('utf-8')
 
         # 2. Grab the signature
@@ -128,7 +125,7 @@ def validate_signature(event, context):
             if x5u not in checked_certificates:
                 resp = requests.get(signature['x5u'])
                 cert_pem = resp.text.encode('utf-8')
-                cert = cryptography.x509.load_pem_x509_certificate(cert_pem, crypto_backends.default_backend())
+                cert = cryptography.x509.load_pem_x509_certificate(cert_pem, crypto_default_backend())
                 assert cert.not_valid_before < datetime.now(), "certificate not yet valid"
                 assert cert.not_valid_after > datetime.now(), "certificate expired"
                 subject = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
@@ -140,7 +137,7 @@ def validate_signature(event, context):
             cert = checked_certificates[x5u]
             cert_pubkey_pem = cert.public_key().public_bytes(crypto_serialization.Encoding.PEM,
                                                              crypto_serialization.PublicFormat.SubjectPublicKeyInfo)
-            assert _unpem(cert_pubkey_pem) == pubkey, "signature public key does not match certificate"
+            assert unpem(cert_pubkey_pem) == pubkey, "signature public key does not match certificate"
 
             elapsed_time = time.time() - start_time
             message += f'OK ({elapsed_time:.2f}s)'
@@ -151,8 +148,8 @@ def validate_signature(event, context):
 
             # Gather details for the global exception that will be raised.
             signed_on = metadata['last_modified']
-            signed_on_date = _timestamp_to_date(signed_on)
-            timestamp_date = _timestamp_to_date(timestamp)
+            signed_on_date = timestamp_to_date(signed_on)
+            timestamp_date = timestamp_to_date(timestamp)
             error_message = (
                 'Signature verification failed on {endpoint}\n'
                 ' - Signed on: {signed_on} ({signed_on_date})\n'
@@ -166,8 +163,6 @@ def validate_signature(event, context):
 
 
 def validate_changes_collection(event, context):
-    """Validate the changes monitor endpoint entries.
-    """
     # 1. Grab the changes collection
     server_url = event['server']
     bucket = event.get('bucket', "monitor")
@@ -196,7 +191,9 @@ def validate_changes_collection(event, context):
 
 
 def backport_records(event, context):
-    """Backport records creations, updates and deletions from one collection to another.
+    """
+    Note: This lambda is not safe if other user can interact with the destination
+    collection.
     """
     server_url = event['server']
     source_auth = event.get("backport_records_source_auth") or os.environ["BACKPORT_RECORDS_SOURCE_AUTH"]
@@ -268,12 +265,12 @@ def backport_records(event, context):
         print(f"Done. Requested review for {ops_count} changes.")
 
 
-def _timestamp_to_date(timestamp_milliseconds):
+def timestamp_to_date(timestamp_milliseconds):
     timestamp_seconds = int(timestamp_milliseconds) / 1000
     return datetime.utcfromtimestamp(timestamp_seconds).strftime('%Y-%m-%d %H:%M:%S UTC')
 
 
-def _get_signed_source(server_info, change):
+def get_signed_source(server_info, change):
     # Small helper to identify the source collection from a potential
     # signing destination collection, like those mentioned in the changes endpoint
     # (eg. blocklists/plugins -> staging/plugins).
@@ -291,8 +288,6 @@ def _get_signed_source(server_info, change):
 
 
 def refresh_signature(event, context):
-    """Refresh the signatures of each collection.
-    """
     server_url = event['server']
     auth = tuple(os.getenv("REFRESH_SIGNATURE_AUTH").split(':', 1))
 
@@ -315,7 +310,7 @@ def refresh_signature(event, context):
 
     for change in changes:
         # 0. Figure out which was the source collection of this signed collection.
-        source = _get_signed_source(server_info, change)
+        source = get_signed_source(server_info, change)
         if source is None:
             # Skip if change is no kinto-signer destination (eg. review collection)
             continue
@@ -347,7 +342,7 @@ def refresh_signature(event, context):
                     last_modified = new_metadata['data']['last_modified']
 
             # 3. Display the status of the collection
-            print('status=', status, 'at', _timestamp_to_date(last_modified), '(', last_modified, ')')
+            print('status=', status, 'at', timestamp_to_date(last_modified), '(', last_modified, ')')
 
         except KintoException as e:
             print(e)
@@ -362,8 +357,16 @@ BLOCKPAGES_ARGS = ['server', 'bucket', 'addons-collection', 'plugins-collection'
 
 
 def blockpages_generator(event, context):
-    """Generate the blocklist HTML pages and upload them to S3.
+    """Event will contain the blockpages_generator parameters:
+         - server: The kinto server to read data from.
+                   (i.e: https://kinto-writer.services.mozilla.com/)
+         - aws_region: S3 bucket AWS Region.
+         - bucket_name: S3 bucket name.
+         - bucket: The readonly public and signed bucket.
+         - addons-collection: The add-ons collection name.
+         - plugins-collection: The plugin collection name.
     """
+
     args = []
     kwargs = {}
 
@@ -375,14 +378,14 @@ def blockpages_generator(event, context):
             kwargs[key.lower()] = value
 
     # In lambda we can only write in the temporary filesystem.
-    target_dir = tempfile.mkdtemp()
+    target_dir = mkdtemp()
     args.append('--target-dir')
     args.append(target_dir)
 
     print("Blocked pages generator args", args)
-    amo_generator.main(args)
+    generator_main(args)
     print("Send results to s3", args)
-    _sync_to_s3(target_dir, **kwargs)
+    sync_to_s3(target_dir, **kwargs)
     print("Clean-up")
     shutil.rmtree(target_dir)
 
@@ -391,7 +394,7 @@ AWS_REGION = "eu-central-1"
 BUCKET_NAME = "amo-blocked-pages"
 
 
-def _sync_to_s3(target_dir, aws_region=AWS_REGION, bucket_name=BUCKET_NAME):
+def sync_to_s3(target_dir, aws_region=AWS_REGION, bucket_name=BUCKET_NAME):
     if not os.path.isdir(target_dir):
         raise ValueError('target_dir %r not found.' % target_dir)
 
@@ -411,24 +414,6 @@ def _sync_to_s3(target_dir, aws_region=AWS_REGION, bucket_name=BUCKET_NAME):
             aws_region, bucket_name, filename))
 
 
-def help(event, context):
-    """Show this help.
-    """
-    def white_bold(s):
-        return f"\033[1m\x1B[37m{s}\033[0;0m"
-
-    commands = [obj for name, obj in inspect.getmembers(sys.modules[__name__])
-                if inspect.isfunction(obj) and not name.startswith("_")]
-    func_listed = "\n - ".join([f"{white_bold(f.__name__)}: {f.__doc__}" for f in commands])
-    print(f"""
-Remote Settings lambdas.
-
-Available commands:
-
- - {func_listed}
-    """)
-
-
 if __name__ == "__main__":
     # Run the function specified in CLI arg.
     #
@@ -438,9 +423,6 @@ if __name__ == "__main__":
     context = None
     try:
         function = globals()[sys.argv[1]]
-    except IndexError as e:
-        help(None, None)
-        sys.exit(1)
     except KeyError as e:
         print("Unknown function %s" % e)
         sys.exit(1)
