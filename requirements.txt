@@ -157,9 +157,9 @@ six==1.12.0 \
 Unidecode==1.0.23 \
     --hash=sha256:092cdf7ad9d1052c50313426a625b717dab52f7ac58f859e09ea020953b1ad8f \
     --hash=sha256:8b85354be8fd0c0e10adbf0675f6dc2310e56fda43fa8fe049123b6c475e52fb
-hashin==0.14.1 \
-    --hash=sha256:5dbf06b2adc32e5e438b9b9b352622b787c8555d4a2aa88b38d64764526f81a1 \
-    --hash=sha256:43ae3277fbd937ba1c99bc3fef9e4dd2e68cd5f2eea8f60ebdb53d83983d861b
+hashin==0.14.2 \
+    --hash=sha256:2b019a13beaff83b71aa054cd1c08f42e3e22a5df2078ba1f851a592b2593391 \
+    --hash=sha256:d55a3ff3187dc716e8eb790803afbee9e6f081e1e79f3040ed1036ec6bfda6cb
 urllib3==1.24.1 \
     --hash=sha256:61bf29cada3fc2fbefad4fdf059ea4bd1b4a86d2b6d15e1c7c0b582b9752fe39 \
     --hash=sha256:de9529817c93f27c8ccbfead6985011db27bd0ddfcdb2d86f3f663385c6a9c22
