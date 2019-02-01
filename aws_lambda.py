@@ -318,6 +318,91 @@ def get_signed_source(server_info, change):
             }
 
 
+def compare_records(a, b):
+    b_by_id = {r["id"]: r for r in b}
+    diff = []
+    for ra in a:
+        rb = b_by_id.pop(ra["id"], None)
+        if rb is None:
+            diff.append(ra)
+    diff = diff.extend(b_by_id.values())
+    return diff
+
+
+class BearerTokenAuth(requests.auth.AuthBase):
+    def __init__(self, token):
+        self.token = token
+
+    def __call__(self, r):
+        r.headers['Authorization'] = 'Bearer ' + self.token
+        return r
+
+
+@command
+def consistency_checks(event, **kwargs):
+    """Check the collections content and status consistency.
+    """
+    server_url = event["server"]
+    auth = os.getenv("AUTH")
+    if auth:
+        auth = tuple(auth.split(":", 1)) if ":" in auth else BearerTokenAuth(auth)
+
+    client = Client(server_url=server_url, auth=auth)
+
+    # List signed collection using capabilities.
+    info = client.server_info()
+    try:
+        resources = info["capabilities"]["signer"]["resources"]
+    except KeyError:
+        raise ValueError("No signer capabilities found. Run on *writer* server!")
+
+    by_dest = {}
+    by_preview = {}
+    for resource in resources:
+        if resource["source"]["collection"] is not None:
+            by_dest[(resource["destination"]["bucket"], resource["destination"]["collection"])] = resource
+            by_preview[(resource["preview"]["bucket"], resource["preview"]["collection"])] = resource
+        else:
+            by_dest[(resource["destination"]["bucket"],)] = resource
+            by_preview[(resource["preview"]["bucket"],)] = resource
+
+    monitored = client.get_records(bucket="monitor", collection="changes")
+    for entry in monitored:
+        bid = entry["bucket"]
+        cid = entry["collection"]
+
+        if (bid, cid) in by_dest:
+            r = by_dest[(bid, cid)]
+        elif (bid, cid) in by_preview:
+            r = by_preview[(bid, cid)]
+        elif (bid,) in by_dest:
+            r = by_dest[(bid,)]
+            r["source"]["collection"] = r["preview"]["collection"] = r["destination"]["collection"] = cid
+        elif (bid,) in by_preview:
+            r = by_preview[(bid,)]
+            r["source"]["collection"] = r["preview"]["collection"] = r["destination"]["collection"] = cid
+        else:
+            raise ValueError(f"Unknown signed collection {bid}/{cid}")
+
+        source_metadata = client.get_collection(bucket=r["source"]["bucket"], id=r["source"]["collection"])["data"]
+
+        if source_metadata["status"] == "to-review":
+            source_records = client.get_records(**r["source"])
+            preview_records = client.get_records(**r["preview"])
+            diff = compare_records(source_records, preview_records)
+            if diff:
+                raise ValueError(f"Inconsistency detected: {diff}")
+
+        elif source_metadata["status"] == "signed":
+            preview_records = client.get_records(**r["preview"])
+            dest_records = client.get_records(**r["destination"])
+            diff = compare_records(preview_records, dest_records)
+            if diff:
+                raise ValueError(f"Inconsistency detected: {diff}")
+
+        print("{bucket}/{collection} OK".format(**r["destination"]))
+
+
 @command
 def refresh_signature(event, **kwargs):
     """Refresh the signatures of each collection.
