@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 import base64
 import concurrent.futures
-import functools
 import hashlib
 import inspect
-import json
-import operator
 import os
 import requests
 import shutil
