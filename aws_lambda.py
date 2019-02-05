@@ -356,30 +356,28 @@ def consistency_checks(event, **kwargs):
     except KeyError:
         raise ValueError("No signer capabilities found. Run on *writer* server!")
 
-    by_dest = {}
-    by_preview = {}
+    signed_collections = {}
+    preview_buckets = set()
     for resource in resources:
         if resource["source"]["collection"] is not None:
-            by_dest[(resource["destination"]["bucket"], resource["destination"]["collection"])] = resource
-            by_preview[(resource["preview"]["bucket"], resource["preview"]["collection"])] = resource
+            signed_collections[(resource["destination"]["bucket"], resource["destination"]["collection"])] = resource
         else:
-            by_dest[(resource["destination"]["bucket"],)] = resource
-            by_preview[(resource["preview"]["bucket"],)] = resource
+            signed_collections[(resource["destination"]["bucket"],)] = resource
+        preview_buckets.add(resource["preview"]["bucket"])
 
-    monitored = client.get_records(bucket="monitor", collection="changes")
+    monitored = client.get_records(bucket="monitor", collection="changes", _sort="bucket,collection")
     for entry in monitored:
         bid = entry["bucket"]
         cid = entry["collection"]
 
-        if (bid, cid) in by_dest:
-            r = by_dest[(bid, cid)]
-        elif (bid, cid) in by_preview:
-            r = by_preview[(bid, cid)]
-        elif (bid,) in by_dest:
-            r = by_dest[(bid,)]
-            r["source"]["collection"] = r["preview"]["collection"] = r["destination"]["collection"] = cid
-        elif (bid,) in by_preview:
-            r = by_preview[(bid,)]
+        # Skip preview collections entries
+        if bid in preview_buckets:
+            continue
+
+        if (bid, cid) in signed_collections:
+            r = signed_collections[(bid, cid)]
+        elif (bid,) in signed_collections:
+            r = signed_collections[(bid,)]
             r["source"]["collection"] = r["preview"]["collection"] = r["destination"]["collection"] = cid
         else:
             raise ValueError(f"Unknown signed collection {bid}/{cid}")
