@@ -67,6 +67,15 @@ class RefreshError(Exception):
     pass
 
 
+class BearerTokenAuth(requests.auth.AuthBase):
+    def __init__(self, token):
+        self.token = token
+
+    def __call__(self, r):
+        r.headers['Authorization'] = 'Bearer ' + self.token
+        return r
+
+
 def download_collection_data(server_url, collection):
     client = Client(server_url=server_url,
                     bucket=collection['bucket'],
@@ -316,6 +325,7 @@ def get_signed_source(server_info, change):
 
 
 def compare_records(a, b):
+    """Compare two lists of records. Returns empty list if equal."""
     b_by_id = {r["id"]: r for r in b}
     diff = []
     for ra in a:
@@ -324,15 +334,6 @@ def compare_records(a, b):
             diff.append(ra)
     diff = diff.extend(b_by_id.values())
     return diff
-
-
-class BearerTokenAuth(requests.auth.AuthBase):
-    def __init__(self, token):
-        self.token = token
-
-    def __call__(self, r):
-        r.headers['Authorization'] = 'Bearer ' + self.token
-        return r
 
 
 @command
