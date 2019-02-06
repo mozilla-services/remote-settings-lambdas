@@ -421,11 +421,14 @@ def consistency_checks(event, **kwargs):
         # And if status is ``signed``, then records in the source and preview should
         # all be the same as those in the destination.
         elif status == "signed" or status is None:
+            source_records = client.get_records(**r["source"])
             preview_records = client.get_records(**r["preview"])
             dest_records = client.get_records(**r["destination"])
-            diff = compare_collections(preview_records, dest_records)
-            if diff:
-                return identifier, diff
+
+            diff_source = compare_collections(source_records, preview_records)
+            diff_preview = compare_collections(preview_records, dest_records)
+            if diff_source or diff_preview:
+                return identifier, diff_source + diff_preview
 
         else:
             # And if status is ``work-in-progress``, we can't really check anything.
