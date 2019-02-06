@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import base64
 import concurrent.futures
+import copy
 import hashlib
 import inspect
 import os
@@ -325,6 +326,14 @@ def get_signed_source(server_info, change):
 
 
 def compare_records(a, b):
+    """Compare records, ignoring timestamps."""
+    ignored_fields = ("last_modified", "schema")
+    ra = {k: v for k, v in a.items() if k not in ignored_fields}
+    rb = {k: v for k, v in b.items() if k not in ignored_fields}
+    return ra == rb
+
+
+def compare_collections(a, b):
     """Compare two lists of records. Returns empty list if equal."""
     b_by_id = {r["id"]: r for r in b}
     diff = []
@@ -332,8 +341,55 @@ def compare_records(a, b):
         rb = b_by_id.pop(ra["id"], None)
         if rb is None:
             diff.append(ra)
+        if not compare_records(ra, rb):
+            diff.append(ra)
     diff = diff.extend(b_by_id.values())
     return diff
+
+
+def fetch_signed_resources(server_url, auth):
+    # List signed collection using capabilities.
+    client = Client(server_url=server_url, auth=auth, bucket="monitor", collection="changes")
+    info = client.server_info()
+    try:
+        resources = info["capabilities"]["signer"]["resources"]
+    except KeyError:
+        raise ValueError("No signer capabilities found. Run on *writer* server!")
+
+    # Build the list of signed collections, source -> preview -> destination
+    # For most cases, configuration of signed resources is specified by bucket and
+    # does not contain any collection information.
+    resources_by_bid = {}
+    resources_by_cid = {}
+    preview_buckets = set()
+    for resource in resources:
+        if resource["source"]["collection"] is not None:
+            resources_by_cid[(resource["destination"]["bucket"], resource["destination"]["collection"])] = resource
+        else:
+            resources_by_bid[(resource["destination"]["bucket"],)] = resource
+        preview_buckets.add(resource["preview"]["bucket"])
+
+    print('Read collection list from {}'.format(client.get_endpoint('collection')))
+    resources = []
+    monitored = client.get_records(_sort="bucket,collection")
+    for entry in monitored:
+        bid = entry["bucket"]
+        cid = entry["collection"]
+
+        # Skip preview collections entries
+        if bid in preview_buckets:
+            continue
+
+        if (bid, cid) in resources_by_cid:
+            r = resources_by_cid[(bid, cid)]
+        elif (bid,) in resources_by_bid:
+            r = copy.deepcopy(resources_by_bid[(bid,)])
+            r["source"]["collection"] = r["preview"]["collection"] = r["destination"]["collection"] = cid
+        else:
+            raise ValueError(f"Unknown signed collection {bid}/{cid}")
+        resources.append(r)
+
+    return resources
 
 
 @command
@@ -345,58 +401,48 @@ def consistency_checks(event, **kwargs):
     if auth:
         auth = tuple(auth.split(":", 1)) if ":" in auth else BearerTokenAuth(auth)
 
-    client = Client(server_url=server_url, auth=auth)
-
-    # List signed collection using capabilities.
-    info = client.server_info()
-    try:
-        resources = info["capabilities"]["signer"]["resources"]
-    except KeyError:
-        raise ValueError("No signer capabilities found. Run on *writer* server!")
-
-    signed_collections = {}
-    preview_buckets = set()
-    for resource in resources:
-        if resource["source"]["collection"] is not None:
-            signed_collections[(resource["destination"]["bucket"], resource["destination"]["collection"])] = resource
-        else:
-            signed_collections[(resource["destination"]["bucket"],)] = resource
-        preview_buckets.add(resource["preview"]["bucket"])
-
-    monitored = client.get_records(bucket="monitor", collection="changes", _sort="bucket,collection")
-    for entry in monitored:
-        bid = entry["bucket"]
-        cid = entry["collection"]
-
-        # Skip preview collections entries
-        if bid in preview_buckets:
-            continue
-
-        if (bid, cid) in signed_collections:
-            r = signed_collections[(bid, cid)]
-        elif (bid,) in signed_collections:
-            r = signed_collections[(bid,)]
-            r["source"]["collection"] = r["preview"]["collection"] = r["destination"]["collection"] = cid
-        else:
-            raise ValueError(f"Unknown signed collection {bid}/{cid}")
+    def _has_inconsistencies(server_url, auth, r):
+        client = Client(server_url=server_url, auth=auth)
 
         source_metadata = client.get_collection(bucket=r["source"]["bucket"], id=r["source"]["collection"])["data"]
 
+        # Collection status is reset on any modification, so if status is ``to-review``,
+        # then records in the source should be exactly the same as the records in the preview
         if source_metadata["status"] == "to-review":
             source_records = client.get_records(**r["source"])
             preview_records = client.get_records(**r["preview"])
-            diff = compare_records(source_records, preview_records)
+            diff = compare_collections(source_records, preview_records)
             if diff:
-                raise ValueError(f"Inconsistency detected: {diff}")
+                return r, diff
 
+        # And if status is ``signed``, then records in the source and preview should
+        # all be the same as those in the destination.
         elif source_metadata["status"] == "signed":
             preview_records = client.get_records(**r["preview"])
             dest_records = client.get_records(**r["destination"])
-            diff = compare_records(preview_records, dest_records)
+            diff = compare_collections(preview_records, dest_records)
             if diff:
-                raise ValueError(f"Inconsistency detected: {diff}")
+                return r, diff
 
-        print("{bucket}/{collection} OK".format(**r["destination"]))
+        # And if status is ``work-in-progress``, we can't really check anything.
+        # Source can differ from preview, and preview can differ from destination
+        # if a review request was previously rejected.
+
+        return r, None
+
+    resources = fetch_signed_resources(server_url, auth)
+    results = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=PARALLEL_REQUESTS) as executor:
+        futures = [executor.submit(_has_inconsistencies, server_url, auth, r)
+                   for r in resources]
+        for future in concurrent.futures.as_completed(futures):
+            results.append(future.result())
+
+    for i, (resource, diff) in enumerate(results):
+        if diff:
+            raise ValueError("Inconsistency detected on {bucket}/{collection}: {diff}".format(diff=diff, **resource["destination"]))
+        else:
+            print("{bucket}/{collection} OK".format(**resource["destination"]))
 
 
 @command
