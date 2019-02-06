@@ -366,7 +366,7 @@ def fetch_signed_resources(server_url, auth):
         if resource["source"]["collection"] is not None:
             resources_by_cid[(resource["destination"]["bucket"], resource["destination"]["collection"])] = resource
         else:
-            resources_by_bid[(resource["destination"]["bucket"],)] = resource
+            resources_by_bid[resource["destination"]["bucket"]] = resource
         preview_buckets.add(resource["preview"]["bucket"])
 
     print('Read collection list from {}'.format(client.get_endpoint('collection')))
@@ -382,7 +382,7 @@ def fetch_signed_resources(server_url, auth):
 
         if (bid, cid) in resources_by_cid:
             r = resources_by_cid[(bid, cid)]
-        elif (bid,) in resources_by_bid:
+        elif bid in resources_by_bid:
             r = copy.deepcopy(resources_by_bid[(bid,)])
             r["source"]["collection"] = r["preview"]["collection"] = r["destination"]["collection"] = cid
         else:
