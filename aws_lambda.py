@@ -325,7 +325,7 @@ def get_signed_source(server_info, change):
             }
 
 
-def compare_records(a, b):
+def records_equal(a, b):
     """Compare records, ignoring timestamps."""
     ignored_fields = ("last_modified", "schema")
     ra = {k: v for k, v in a.items() if k not in ignored_fields}
@@ -341,9 +341,9 @@ def compare_collections(a, b):
         rb = b_by_id.pop(ra["id"], None)
         if rb is None:
             diff.append(ra)
-        if not compare_records(ra, rb):
+        elif not records_equal(ra, rb):
             diff.append(ra)
-    diff = diff.extend(b_by_id.values())
+    diff.extend(b_by_id.values())
     return diff
 
 
@@ -405,30 +405,37 @@ def consistency_checks(event, **kwargs):
         client = Client(server_url=server_url, auth=auth)
 
         source_metadata = client.get_collection(bucket=r["source"]["bucket"], id=r["source"]["collection"])["data"]
+        status = source_metadata["status"]
+
+        identifier = "{bucket}/{collection}".format(**r["destination"])
 
         # Collection status is reset on any modification, so if status is ``to-review``,
         # then records in the source should be exactly the same as the records in the preview
-        if source_metadata["status"] == "to-review":
+        if status == "to-review":
             source_records = client.get_records(**r["source"])
             preview_records = client.get_records(**r["preview"])
             diff = compare_collections(source_records, preview_records)
             if diff:
-                return r, diff
+                return identifier, diff
 
         # And if status is ``signed``, then records in the source and preview should
         # all be the same as those in the destination.
-        elif source_metadata["status"] == "signed":
+        elif status == "signed" or status is None:
             preview_records = client.get_records(**r["preview"])
             dest_records = client.get_records(**r["destination"])
             diff = compare_collections(preview_records, dest_records)
             if diff:
-                return r, diff
+                return identifier, diff
 
-        # And if status is ``work-in-progress``, we can't really check anything.
-        # Source can differ from preview, and preview can differ from destination
-        # if a review request was previously rejected.
+        else:
+            # And if status is ``work-in-progress``, we can't really check anything.
+            # Source can differ from preview, and preview can differ from destination
+            # if a review request was previously rejected.
+            print(f"{identifier} SKIP ({status})")
+            return identifier, None
 
-        return r, None
+        print(f"{identifier} OK")
+        return identifier, None
 
     resources = fetch_signed_resources(server_url, auth)
     results = []
@@ -438,11 +445,9 @@ def consistency_checks(event, **kwargs):
         for future in concurrent.futures.as_completed(futures):
             results.append(future.result())
 
-    for i, (resource, diff) in enumerate(results):
-        if diff:
-            raise ValueError("Inconsistency detected on {bucket}/{collection}: {diff}".format(diff=diff, **resource["destination"]))
-        else:
-            print("{bucket}/{collection} OK".format(**resource["destination"]))
+    inconsistent = [identifier for identifier, diff in results if diff]
+    if inconsistent:
+        raise ValueError("Inconsistencies detected on {}".format(", ".join(inconsistent)))
 
 
 @command
