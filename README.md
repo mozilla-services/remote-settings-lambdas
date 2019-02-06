@@ -54,6 +54,35 @@ Looking at /buckets/staging/collections/gfx: Trigger new signature: signed at 20
 
 ```
 
+### Consistency checks
+
+Environment config:
+
+- ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
+- ``AUTH``: credentials, either ``user:pass`` or ``{access-token}`` (default: ``None``)
+
+```
+$ AUTH=XYPJTNBCDE-lVna SERVER=https://settings-writer.stage.mozaws.net/v1 python aws_lambda.py consistency_checks
+
+Read collection list from /buckets/monitor/collections/changes
+blocklists/certificates OK
+blocklists/gfx OK
+blocklists/addons OK
+blocklists/plugins OK
+main/cfr OK
+main/chinarepack-newtab-configuration OK
+main/chinarepack-newtab-topsites OK
+main/fxmonitor-breaches SKIP (work-in-progress)
+main/fenix-experiments OK
+main/fftv-experiments OK
+main/lite-experiments SKIP (work-in-progress)
+main/language-dictionaries OK
+main/normandy-recipes OK
+main/onboarding OK
+main/rocket-prefs SKIP (work-in-progress)
+main/personality-provider-models OK
+```
+
 ### Backport records
 
 Backport the changes from one collection to another. This is useful if the new collection (*source*) has become the source of truth,
