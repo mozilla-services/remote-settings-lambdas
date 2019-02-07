@@ -105,7 +105,7 @@ def download_collection_data(server_url, collection):
 
 
 @command
-def validate_signature(event, **kwargs):
+def validate_signature(event, context, **kwargs):
     """Validate the signature of each collection.
     """
     server_url = event["server"]
@@ -231,7 +231,7 @@ def validate_signature(event, **kwargs):
 
 
 @command
-def validate_changes_collection(event, **kwargs):
+def validate_changes_collection(event, context, **kwargs):
     """Validate the changes monitor endpoint entries.
     """
     # 1. Grab the changes collection
@@ -262,7 +262,7 @@ def validate_changes_collection(event, **kwargs):
 
 
 @command
-def backport_records(event, **kwargs):
+def backport_records(event, context, **kwargs):
     """Backport records creations, updates and deletions from one collection to another.
     """
     server_url = event["server"]
@@ -465,7 +465,7 @@ def fetch_signed_resources(server_url, auth):
 
 
 @command
-def consistency_checks(event, **kwargs):
+def consistency_checks(event, context, **kwargs):
     """Check the collections content and status consistency.
     """
     server_url = event["server"]
@@ -534,7 +534,7 @@ def consistency_checks(event, **kwargs):
 
 
 @command
-def refresh_signature(event, **kwargs):
+def refresh_signature(event, context, **kwargs):
     """Refresh the signatures of each collection.
     """
     server_url = event["server"]
@@ -614,7 +614,7 @@ BLOCKPAGES_ARGS = ["server", "bucket", "addons-collection", "plugins-collection"
 
 
 @command
-def blockpages_generator(event, context):
+def blockpages_generator(event, context, **kwargs):
     """Generate the blocklist HTML pages and upload them to S3.
     """
     args = []
