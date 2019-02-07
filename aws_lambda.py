@@ -453,7 +453,7 @@ def fetch_signed_resources(server_url, auth):
         if (bid, cid) in resources_by_cid:
             r = resources_by_cid[(bid, cid)]
         elif bid in resources_by_bid:
-            r = copy.deepcopy(resources_by_bid[(bid,)])
+            r = copy.deepcopy(resources_by_bid[bid])
             r["source"]["collection"] = r["preview"]["collection"] = r["destination"][
                 "collection"
             ] = cid
