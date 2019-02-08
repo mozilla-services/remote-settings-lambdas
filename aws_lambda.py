@@ -468,8 +468,8 @@ def fetch_signed_resources(server_url, auth):
 def consistency_checks(event, context, **kwargs):
     """Check the collections content and status consistency.
     """
-    server_url = event["server"]
-    auth = os.getenv("AUTH")
+    server_url = event.get("server") or os.getenv("SERVER")
+    auth = event.get("auth") or os.getenv("AUTH")
     if auth:
         auth = tuple(auth.split(":", 1)) if ":" in auth else BearerTokenAuth(auth)
 
