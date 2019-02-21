@@ -437,7 +437,8 @@ def fetch_signed_resources(server_url, auth):
             ] = resource
         else:
             resources_by_bid[resource["destination"]["bucket"]] = resource
-        preview_buckets.add(resource["preview"]["bucket"])
+        if "preview" in resource:
+            preview_buckets.add(resource["preview"]["bucket"])
 
     print("Read collection list from {}".format(client.get_endpoint("collection")))
     resources = []
@@ -454,9 +455,9 @@ def fetch_signed_resources(server_url, auth):
             r = resources_by_cid[(bid, cid)]
         elif bid in resources_by_bid:
             r = copy.deepcopy(resources_by_bid[bid])
-            r["source"]["collection"] = r["preview"]["collection"] = r["destination"][
-                "collection"
-            ] = cid
+            r["source"]["collection"] = r["destination"]["collection"] = cid
+            if "preview" in r:
+                r["preview"]["collection"] = cid
         else:
             raise ValueError(f"Unknown signed collection {bid}/{cid}")
         resources.append(r)
@@ -496,11 +497,17 @@ def consistency_checks(event, context, **kwargs):
         # all be the same as those in the destination.
         elif status == "signed" or status is None:
             source_records = client.get_records(**r["source"])
-            preview_records = client.get_records(**r["preview"])
             dest_records = client.get_records(**r["destination"])
-
-            diff_source = compare_collections(source_records, preview_records)
-            diff_preview = compare_collections(preview_records, dest_records)
+            if "preview" in r:
+                # If preview is enabled, then compare source/preview and preview/dest
+                preview_records = client.get_records(**r["preview"])
+                diff_source = compare_collections(source_records, preview_records)
+                diff_preview = compare_collections(preview_records, dest_records)
+            else:
+                # Otherwise, just compare source/dest
+                diff_source = compare_collections(source_records, dest_records)
+                diff_preview = []
+            # If difference detected, report it!
             if diff_source or diff_preview:
                 return identifier, diff_source + diff_preview
 
