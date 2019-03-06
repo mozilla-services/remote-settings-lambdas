@@ -4,9 +4,9 @@ amo2kinto==4.0.1 \
 asn1crypto==0.24.0 \
     --hash=sha256:2f1adbb7546ed199e3c90ef23ec95c5cf3585bac7d11fb7eb562a3fe89c64e87 \
     --hash=sha256:9d5c20441baf0cb60a4ac34cc447c6c189024b6b4c6cd7877034f4965c464e49
-boto3==1.9.107 \
-    --hash=sha256:3b817da4a804f7ee5ce252e38b890ec84752c51488360a9dc492eb27c258ff2b \
-    --hash=sha256:76d6c2d955d9a799a8d9cf8754ad377059e7809dd1820bace07e600f0a7c4ad6
+boto3==1.9.108 \
+    --hash=sha256:6f8bf13e39f52a13a1af6eb067723d6cf28b6c09d5b72953d729bff8a88fa0b9 \
+    --hash=sha256:16e093bf505ccf004ea1cab34188af8df1df02c738a6d2f46bc42e7cbda667f8
 botocore==1.12.108 \
     --hash=sha256:99f83ddd73abbf8c3484f0ac7ffde21a6fbd0bfc9f9b9afbf29ce52667737c49 \
     --hash=sha256:aefb5185bd3cfd4801ed32ddd51ba6c6b7054010f907d69031f5569bebccf5be
