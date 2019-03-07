@@ -13,7 +13,7 @@ def help(**kwargs):
         return f"\033[1m\x1B[37m{s}\033[0;0m"
 
     entrypoints = [
-        f.rsplit("/")[-1].replace(".py", "") for f in glob.glob("./commands/[a-z]*.py")
+        os.path.splitext(os.path.basename(f))[0] for f in glob.glob("./commands/[a-z]*.py")
     ]
     commands = [
         getattr(importlib.import_module(f"commands.{entrypoint}"), entrypoint)
