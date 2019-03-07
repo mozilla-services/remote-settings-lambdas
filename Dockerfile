@@ -12,7 +12,7 @@ RUN pip install --quiet --target /lambda -r /tmp/requirements.pip -c /tmp/requir
     find /lambda -type f | xargs chmod ugo+r
 
 # Add your source code
-ADD aws_lambda.py /lambda/
+ADD *.py /lambda/
 RUN find /lambda -type d | xargs chmod ugo+rx && \
     find /lambda -type f | xargs chmod ugo+r
 
