@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import glob
 import importlib
 import os
 import sys
@@ -11,20 +12,16 @@ def help(**kwargs):
     def white_bold(s):
         return f"\033[1m\x1B[37m{s}\033[0;0m"
 
-    # XXX: use inspect, import lib whatever...
-    modules_names = [
-        "backport_records",
-        "blockpages_generator",
-        "consistency_checks",
-        "refresh_signature",
-        "validate_changes_collection",
-        "validate_signature",
+    entrypoints = [
+        f.rsplit("/")[-1].replace(".py", "") for f in glob.glob("./commands/[a-z]*.py")
     ]
-    cmds = [
-        getattr(importlib.import_module(f"commands.{subm}"), subm)
-        for subm in modules_names
+    commands = [
+        getattr(importlib.import_module(f"commands.{entrypoint}"), entrypoint)
+        for entrypoint in entrypoints
     ]
-    func_listed = "\n - ".join([f"{white_bold(f.__name__)}: {f.__doc__}" for f in cmds])
+    func_listed = "\n - ".join(
+        [f"{white_bold(f.__name__)}: {f.__doc__}" for f in commands]
+    )
     print(
         f"""
 Remote Settings lambdas.
