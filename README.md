@@ -1,24 +1,31 @@
 # Remote Settings Lambdas
 
-## Test locally
+A collection of scripts related to the Remote Settings service.
+
+## Commands
+
+Each command can be run, either with Python:
 
 ```
-$ make virtualenv
-$ source .venv/bin/activate
+$ python aws_lambda.py validate_signature
 ```
 
-For example, run [kinto-dist](https://github.com/Kinto/kinto-dist/) locally (see README).
-
-Initialize the server with the Kinto Dist smoke tests:
+or via the Docker container:
 
 ```
-$ bash /path/to/kinto-dist/tests/smoke-test.sh
+$ docker run remote-settings-lambdas validate_signature
 ```
 
-### Validate signatures
+### validate_signature
+
+Environment config:
+
+- ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
+
+Example:
 
 ```
-SERVER=https://firefox.settings.services.mozilla.com/v1/  python aws_lambda.py validate_signature
+$ SERVER=https://firefox.settings.services.mozilla.com/v1/  python aws_lambda.py validate_signature
 Read collection list from /buckets/monitor/collections/changes
 01/17 /buckets/blocklists/collections/addons:  OK
 02/17 /buckets/blocklists-preview/collections/addons:  OK
@@ -40,7 +47,15 @@ Read collection list from /buckets/monitor/collections/changes
 
 ```
 
-### Refresh signatures
+
+### refresh_signature
+
+Environment config:
+
+- ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
+- ``REFRESH_SIGNATURE_AUTH``: credentials, either ``user:pass`` or ``{access-token}`` (default: ``None``)
+
+Example:
 
 ```
 $ REFRESH_SIGNATURE_AUTH=reviewer:pass  python aws_lambda.py refresh_signature
@@ -54,12 +69,15 @@ Looking at /buckets/staging/collections/gfx: Trigger new signature: signed at 20
 
 ```
 
-### Consistency checks
+
+### consistency_checks
 
 Environment config:
 
 - ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
 - ``AUTH``: credentials, either ``user:pass`` or ``{access-token}`` (default: ``None``)
+
+Example:
 
 ```
 $ AUTH=XYPJTNBCDE-lVna SERVER=https://settings-writer.stage.mozaws.net/v1 python aws_lambda.py consistency_checks
@@ -83,7 +101,7 @@ main/rocket-prefs SKIP (work-in-progress)
 main/personality-provider-models OK
 ```
 
-### Backport records
+### backport_records
 
 Backport the changes from one collection to another. This is useful if the new collection (*source*) has become the source of truth,
 but there are still clients pulling data from the old collection (*destination*).
@@ -119,27 +137,55 @@ Records are in sync. Nothing to do.
 
 ```
 
+### validate_changes_collection
+
+Environment config:
+
+- ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
+- ``BUCKET``: monitor changes bucket (default: ``monitor``)
+- ``COLLECTION``: monitor changes collection (default: ``changes``)
+
+
+### blockpages_generator
+
+Environment config:
+
+- ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
+- ``BUCKET``: Kinto blocklists bucket (default: ``blocklists``)
+- ``ADDONS_COLLECTIONS``: Addons blocklist (default: ``addons``)
+- ``PLUGINS_COLLECTIONS``: Addons blocklist (default: ``plugins``)
+- ``AWS_REGION``: AWS S3 region (default: ``eu-central-1``)
+- ``BUCKET_NAME``: AWS bucket name (default: ``amo-blocked-pages``)
+
+
+## Test locally
+
+```
+$ make virtualenv
+$ source .venv/bin/activate
+
+$ SERVER=https://firefox.settings.services.mozilla.com/v1/  python aws_lambda.py validate_signature
+```
+
+### Local Kinto server
+
+Best way to obtain a local setup that looks like a writable Remote Settings instance is to follow [this tutorial](https://remote-settings.readthedocs.io/en/latest/tutorial-local-server.html)
+
+It is possible to initialize the server with some fake data, like for the Kinto Dist smoke tests:
+
+```
+$ bash /path/to/kinto-dist/tests/smoke-test.sh
+```
 
 ## Releasing
 
-You must run this on a linux x86_64 arch, the same as Amazon Lambda.
-
-- `git checkout -b prepare-x.y.z`
-- `make clean`
-- `make zip`
-- `git add requirements.txt; git commit`
-- Open a PR
-- Wait for approval
-- `git checkout master`
-- `git merge --no-ff prepare-x.y.z`
-- `git tag x.y.z` (with `-a` if you are feeling fiesty)
+- `git tag vX.Y.Z`
 - `git push origin master; git push --tags origin`
+- `make zip`
 - Go to releases page on Github and create a release for x.y.z
-- Attach the lambda.zip file from earlier (renaming it
-  `remote-settings-lambdas-x.y.z.zip`).  If you don't have the lambda.zip
-  file from earlier, you can rebuild it by changing `requirements.pip`
-  in the Makefile to `requirements.txt` and rerunning `make zip`
+- Attach the `remote-settings-lambdas-x.y.z.zip` file
 - [Click here][bugzilla-stage-link] to open a ticket to get it deployed to stage and [here][bugzilla-prod-link] to prod
+
 
 [bugzilla-stage-link]: https://bugzilla.mozilla.org/enter_bug.cgi?comment=Please%20upgrade%20the%20lambda%20functions%20to%20use%20the%20last%20release%20of%20remote-settings-lambdas.%0D%0A%0D%0A%5BInsert%20a%20short%20description%20of%20the%20changes%20here.%5D%0D%0A%0D%0Ahttps%3A%2F%2Fgithub.com%2Fmozilla-services%2Fremote-settings-lambdas%2Freleases%2Ftag%2FX.Y.Z%0D%0A%0D%0AThanks%21&component=Operations%3A%20Storage&product=Cloud%20Services&qa_contact=chartjes%40mozilla.com&short_desc=Please%20deploy%20remote-settings-lambdas-X.Y.Z%20lambda%20function%20to%20STAGE
 
