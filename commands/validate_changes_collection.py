@@ -3,7 +3,7 @@ from kinto_http import Client
 
 
 def validate_changes_collection(event, context, **kwargs):
-    """Validate the changes monitor endpoint entries.
+    """Validate the entries of the monitor endpoint.
     """
     # 1. Grab the changes collection
     server_url = event["server"]
