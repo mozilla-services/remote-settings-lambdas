@@ -8,6 +8,8 @@ from amo2kinto.generator import main as generator_main
 from botocore.exceptions import ClientError
 
 
+AWS_REGION = "eu-central-1"
+BUCKET_NAME = "amo-blocked-pages"
 BLOCKPAGES_ARGS = ["server", "bucket", "addons-collection", "plugins-collection"]
 
 
@@ -18,6 +20,9 @@ def blockpages_generator(event, context, **kwargs):
     kwargs = {}
 
     for key, value in event.items():
+        env_value = os.getenv(key.upper().replace("-", "_"))
+        if env_value:
+            value = env_value
         if key in BLOCKPAGES_ARGS:
             args.append("--" + key)
             args.append(value)
@@ -35,10 +40,6 @@ def blockpages_generator(event, context, **kwargs):
     sync_to_s3(target_dir, **kwargs)
     print("Clean-up")
     shutil.rmtree(target_dir)
-
-
-AWS_REGION = "eu-central-1"
-BUCKET_NAME = "amo-blocked-pages"
 
 
 def sync_to_s3(target_dir, aws_region=AWS_REGION, bucket_name=BUCKET_NAME):

@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from kinto_http import Client, KintoException
+from kinto_http import Client, KintoException, BearerTokenAuth
 
 
 class RefreshError(Exception):
@@ -37,7 +37,9 @@ def refresh_signature(event, context, **kwargs):
     """Refresh the signatures of each collection.
     """
     server_url = event["server"]
-    auth = tuple(os.getenv("REFRESH_SIGNATURE_AUTH").split(":", 1))
+    auth = event.get("refresh_signature_auth") or os.getenv("REFRESH_SIGNATURE_AUTH")
+    if auth:
+        auth = tuple(auth.split(":", 1)) if ":" in auth else BearerTokenAuth(auth)
 
     # Look at the collections in the changes endpoint.
     bucket = event.get("bucket", "monitor")

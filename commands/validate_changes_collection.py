@@ -1,3 +1,4 @@
+import os
 from kinto_http import Client
 
 
@@ -6,8 +7,9 @@ def validate_changes_collection(event, context, **kwargs):
     """
     # 1. Grab the changes collection
     server_url = event["server"]
-    bucket = event.get("bucket", "monitor")
-    collection = event.get("collection", "changes")
+    bucket = event.get("bucket", os.getenv("BUCKET", "monitor"))
+    collection = event.get("collection", os.getenv("COLLECTION", "changes"))
+
     client = Client(server_url=server_url, bucket=bucket, collection=collection)
     print("Looking at %s: " % client.get_endpoint("collection"))
 
