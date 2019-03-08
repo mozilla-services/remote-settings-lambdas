@@ -46,7 +46,6 @@ if __name__ == "__main__":
     if entrypoint == "help":
         help()
         sys.exit(0)
-
     try:
         mod = importlib.import_module(f"commands.{entrypoint}")
         getattr(mod, entrypoint)(event, context)

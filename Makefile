@@ -6,6 +6,12 @@ virtualenv:
 	.venv/bin/pip install -r requirements.txt -c constraints.txt
 	.venv/bin/pip install --no-deps kinto-signer -c constraints.txt
 
+lint:
+	therapist run --use-tracked-files .
+
+test:
+	PYTHONPATH=. pytest
+
 build:
 	docker build -t remote-settings-lambdas .
 
