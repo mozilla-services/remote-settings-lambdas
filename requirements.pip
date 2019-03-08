@@ -1,6 +1,0 @@
-amo2kinto
-botocore
-boto3
-cryptography
-ecdsa
-kinto-http>=10.2.0
