@@ -7,8 +7,8 @@ import boto3.session
 from amo2kinto.generator import main as generator_main
 from botocore.exceptions import ClientError
 
-
-AWS_REGION = "eu-central-1"
+import fnmatch
+AWS_REGION = 'eu-central-1'#MESSIGNWITHYA
 BUCKET_NAME = "amo-blocked-pages"
 BLOCKPAGES_ARGS = ["server", "bucket", "addons-collection", "plugins-collection"]
 

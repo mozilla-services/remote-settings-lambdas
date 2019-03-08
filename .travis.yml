@@ -4,7 +4,7 @@ python: 3.7
 cache: pip
 install:
   - pip install -r requirements.pip -c requirements.txt
-  # Lint requirements.
-  - pip install therapist black flake8
+  # Lint/Test requirements.
+  - pip install -r dev.txt
 script:
   - therapist run --use-tracked-files *.py
