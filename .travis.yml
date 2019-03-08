@@ -7,4 +7,4 @@ install:
   # Lint/Test requirements.
   - pip install -r dev.txt
 script:
-  - therapist run --use-tracked-files *.py
+  - therapist run --use-tracked-files .
