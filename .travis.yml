@@ -1,10 +1,12 @@
 dist: xenial
 language: python
 python: 3.7
+services:
+  - docker
 cache: pip
 install:
   # Lint/Test requirements.
   - pip install -r dev.txt
 script:
   - therapist run --use-tracked-files .
-  - docker build -t remote-settings-lambdas .
+  - make zip
