@@ -1,13 +1,16 @@
 dist: xenial
 language: python
-python: 3.7
+python: 3.6  # needs to match Dockerfile
 services:
   - docker
 cache: pip
 install:
-  # Lint/Test requirements.
+  # Install these into the Travis Python for the sake of executing tests.
+  # Note, this means that the python executed to run the pytests is different
+  # from the Docker image we build.
+  - pip install -r requirements.txt -c constraints.txt
   - pip install -r dev.txt
 script:
   - therapist run --use-tracked-files .
-  - PYTHONPATH=. pytest
+  - make test
   - make zip
