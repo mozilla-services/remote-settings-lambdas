@@ -1,6 +1,6 @@
 dist: xenial
 language: python
-python: 3.6  # needs to match Dockerfile
+python: 3.7  # needs to match Dockerfile
 services:
   - docker
 cache: pip
