@@ -79,24 +79,31 @@ def backport_records(event, context, **kwargs):
     # If destination has signing, request review or auto-approve changes.
     server_info = dest_client.server_info()
     signer_config = server_info["capabilities"].get("signer", {})
+    signer_resources = signer_config.get("resources", [])
+    # Check destination collection config (sign-off required etc.)
     signed_dest = [
         r
-        for r in signer_config.get("resources", [])
+        for r in signer_resources
         if r["source"]["bucket"] == dest_bucket
-        and (
-            r["source"]["collection"] is None
-            or r["source"]["collection"] == dest_collection
-        )
+        and r["source"]["collection"] == dest_collection
     ]
-
+    if len(signed_dest) == 0:
+        # Not explicitly configured. Check if configured at bucket level?
+        signed_dest = [
+            r
+            for r in signer_resources
+            if r["source"]["bucket"] == dest_bucket
+            and r["source"]["collection"] is None
+        ]
+    # Destination has no signature enabled. Nothing to do.
     if len(signed_dest) == 0:
         print(f"Done. {ops_count} changes applied.")
         return
 
     has_autoapproval = not signed_dest[0].get(
-        "to-review-enabled", signer_config["to-review-enabled"]
+        "to_review_enabled", signer_config["to_review_enabled"]
     ) and not signed_dest[0].get(
-        "group_check-enabled", signer_config["group_check-enabled"]
+        "group_check_enabled", signer_config["group_check_enabled"]
     )
     if has_autoapproval:
         # Approve the changes.
