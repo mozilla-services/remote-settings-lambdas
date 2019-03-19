@@ -2,6 +2,11 @@
 
 A collection of scripts related to the Remote Settings service.
 
+## Sentry
+
+All commands use Sentry to report any unexpected errors. The `SENTRY_DSN`
+environment variable is not required but is recommended.
+
 ## Commands
 
 Each command can be run, either with Python:
@@ -162,7 +167,6 @@ Environment config:
 Environment config:
 
 - `REDASH_API_KEY`: For Redash (no default, must be set)
-- `SENTRY_DSN`: Private Sentry DSN key (default: *not set*)
 - `REDASH_API_QUERY_URL`: Restful JSON URL for Redash (see code for default)
 - `REDASH_TIMEOUT_SECONDS`: How many seconds to wait for Redash (see code for default)
 - `EXCLUDE_SOURCES`: Comma separated list of sources to ignore (see code for default)
@@ -172,7 +176,7 @@ Environment config:
 Example:
 
 ```
-$ REDASH_API_KEY=xxxxx SENTRY_DSN=yyyyy python3 aws_lambda.py uptake_health
+$ REDASH_API_KEY=xxxxx python3 aws_lambda.py uptake_health
 
 📅 From 2019-03-12 00:00:00 to 2019-03-12 23:59:59
 blocklists/addons                        (good: 1,027,245 bad:    11,081)               1.07%
