@@ -4,8 +4,20 @@ import importlib
 import os
 import sys
 
+import sentry_sdk
+from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
+from decouple import config
 
-def help(**kwargs):
+SENTRY_DSN = config("SENTRY_DSN", default=None)
+
+if SENTRY_DSN:
+    # Note! If you don't do `sentry_sdk.init(DSN)` it will still work
+    # to do things like calling `sentry_sdk.capture_exception(exception)`
+    # It just means it's a noop.
+    sentry_sdk.init(SENTRY_DSN, integrations=[AwsLambdaIntegration()])
+
+
+def help_(**kwargs):
     """Show this help.
     """
 
@@ -34,22 +46,35 @@ Available commands:
     )
 
 
-if __name__ == "__main__":
+def run(command):
+    event = {"server": os.getenv("SERVER", "http://localhost:8888/v1")}
+    context = {"sentry_sdk": sentry_sdk}
+    # Note! If the sentry_sdk was initialized with
+    # the AwsLambdaIntegration integration, it is now ready to automatically
+    # capture all and any unexpected exceptions.
+    # See https://docs.sentry.io/platforms/python/aws_lambda/
+    command(event, context)
+
+
+def main(*args):
     # Run the function specified in CLI arg.
     #
     # $ AUTH=user:pass python aws_lambda.py refresh_signature
     #
-    event = {"server": os.getenv("SERVER", "http://localhost:8888/v1")}
-    context = None
 
-    entrypoint = sys.argv[1]
-    if entrypoint == "help":
-        help()
-        sys.exit(0)
+    if not args or args[0] in ("help", "--help"):
+        help_()
+        return
+    entrypoint = args[0]
     try:
         mod = importlib.import_module(f"commands.{entrypoint}")
-        getattr(mod, entrypoint)(event, context)
+        command = getattr(mod, entrypoint)
     except (ImportError, ModuleNotFoundError):
-        print(f"Unknown function '{entrypoint}'")
-        help()
-        sys.exit(1)
+        print(f"Unknown function {entrypoint!r}", file=sys.stderr)
+        help_()
+        return 1
+    run(command)
+
+
+if __name__ == "__main__":
+    sys.exit(main(*sys.argv[1:]))

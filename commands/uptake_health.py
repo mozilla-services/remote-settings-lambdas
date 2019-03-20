@@ -3,7 +3,6 @@ from fnmatch import fnmatch
 from urllib.parse import urlencode
 
 import requests
-import sentry_sdk
 from decouple import config, undefined, Csv
 from requests.adapters import HTTPAdapter
 from requests.exceptions import HTTPError
@@ -37,8 +36,6 @@ REDASH_API_KEY = config(
     "REDASH_API_KEY",
     default=undefined if "api_key=" not in REDASH_API_QUERY_URL else None,
 )
-
-SENTRY_DSN = config("SENTRY_DSN", default=None)
 
 REDASH_TIMEOUT_SECONDS = config("REDASH_TIMEOUT_SECONDS", cast=int, default=60)
 
@@ -222,23 +219,9 @@ def run():
 
 def uptake_health(event, context):
     """You OK Remote Settings Uptake Telemetry?"""
-    if SENTRY_DSN:
-        # Note! If you don't do `sentry_sdk.init(DSN)` it will still work
-        # to do things like calling `sentry_sdk.capture_exception(exception)`
-        # It just means it's a noop.
-        sentry_sdk.init(SENTRY_DSN)
-    elif not DEBUG:
-        print("No SENTRY_DSN set but not in DEBUG mode!")
+    bads = run()
 
-    try:
-        bads = run()
-    except Exception as exception:
-        # We use Sentry for two things: General unexpected Python exceptions
-        # and plain message. This capture is for the unexpected exceptions.
-        sentry_sdk.capture_exception(exception)
-        raise
-
-    with sentry_sdk.configure_scope() as scope:
+    with context["sentry_sdk"].configure_scope() as scope:
         # Append any extra useful information.
         scope.set_extra("REDASH_API_QUERY_URL", REDASH_API_QUERY_URL)
         scope.set_extra("EXCLUDE_SOURCES", EXCLUDE_SOURCES)
@@ -265,4 +248,4 @@ def uptake_health(event, context):
             # Remember, this will noop if the SENTRY_DSN is not already set.
             message = f"{source} is erroring too much.\n"
             message += stats
-            sentry_sdk.capture_message(message)
+            context["sentry_sdk"].capture_message(message)
