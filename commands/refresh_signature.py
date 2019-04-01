@@ -1,7 +1,9 @@
 import os
 from datetime import datetime
 
-from kinto_http import Client, KintoException, BearerTokenAuth
+from kinto_http import KintoException, BearerTokenAuth
+
+from . import KintoClient as Client
 
 
 class RefreshError(Exception):

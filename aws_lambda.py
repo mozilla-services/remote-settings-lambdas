@@ -5,8 +5,8 @@ import os
 import sys
 
 import sentry_sdk
-from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
 from decouple import config
+from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
 
 SENTRY_DSN = config("SENTRY_DSN", default=None)
 

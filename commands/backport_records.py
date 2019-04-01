@@ -1,6 +1,8 @@
 import os
 
-from kinto_http import Client, BearerTokenAuth
+from kinto_http import BearerTokenAuth
+
+from . import KintoClient as Client
 
 
 def backport_records(event, context, **kwargs):
