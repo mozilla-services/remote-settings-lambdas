@@ -12,6 +12,7 @@ import time
 from datetime import datetime
 from tempfile import mkdtemp
 
+import backoff
 import boto3
 import boto3.session
 import cryptography
@@ -22,11 +23,14 @@ from botocore.exceptions import ClientError
 from cryptography.hazmat.backends import default_backend as crypto_default_backend
 from cryptography.hazmat.primitives import serialization as crypto_serialization
 from cryptography.x509.oid import NameOID
-from kinto_http import Client, KintoException
+from kinto_http import Client as KintoClient, KintoException
 from kinto_signer.serializer import canonical_json
+from requests.adapters import TimeoutSauce
 
 
 PARALLEL_REQUESTS = 4
+REQUESTS_TIMEOUT_SECONDS = float(os.getenv("REQUESTS_TIMEOUT_SECONDS", 2))
+REQUESTS_NB_RETRIES = int(os.getenv("REQUESTS_NB_RETRIES", 4))
 
 
 def command(func):
@@ -85,6 +89,51 @@ class BearerTokenAuth(requests.auth.AuthBase):
     def __call__(self, r):
         r.headers["Authorization"] = "Bearer " + self.token
         return r
+
+
+class CustomTimeout(TimeoutSauce):
+    def __init__(self, *args, **kwargs):
+        if kwargs["connect"] is None:
+            kwargs["connect"] = REQUESTS_TIMEOUT_SECONDS
+        if kwargs["read"] is None:
+            kwargs["read"] = REQUESTS_TIMEOUT_SECONDS
+        super().__init__(*args, **kwargs)
+
+
+requests.adapters.TimeoutSauce = CustomTimeout
+
+retry_timeout = backoff.on_exception(
+    backoff.expo,
+    (requests.exceptions.Timeout, requests.exceptions.ConnectionError),
+    max_tries=REQUESTS_NB_RETRIES,
+)
+
+
+class Client(KintoClient):
+    """
+    This Kinto client will retry the requests if they fail for timeout, and
+    if the server replies with a 5XX.
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("retry", REQUESTS_NB_RETRIES)
+        super().__init__(*args, **kwargs)
+
+    @retry_timeout
+    def server_info(self, *args, **kwargs):
+        super().server_info(*args, **kwargs)
+
+    @retry_timeout
+    def get_collection(self, *args, **kwargs):
+        super().get_collection(*args, **kwargs)
+
+    @retry_timeout
+    def get_records(self, *args, **kwargs):
+        super().get_records(*args, **kwargs)
+
+    @retry_timeout
+    def get_records_timestamp(self, *args, **kwargs):
+        super().get_records_timestamp(*args, **kwargs)
 
 
 def download_collection_data(server_url, collection):
