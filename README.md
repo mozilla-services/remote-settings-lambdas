@@ -17,6 +17,12 @@ $ bash /path/to/kinto-dist/tests/smoke-test.sh
 
 ### Validate signatures
 
+Environment config:
+
+- ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
+- ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
+- ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
+
 ```
 SERVER=https://firefox.settings.services.mozilla.com/v1/  python aws_lambda.py validate_signature
 Read collection list from /buckets/monitor/collections/changes
@@ -42,6 +48,13 @@ Read collection list from /buckets/monitor/collections/changes
 
 ### Refresh signatures
 
+Environment config:
+
+- ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
+- ``REFRESH_SIGNATURE_AUTH``: credentials, either ``user:pass`` or ``{access-token}`` (default: ``None``)
+- ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
+- ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
+
 ```
 $ REFRESH_SIGNATURE_AUTH=reviewer:pass  python aws_lambda.py refresh_signature
 
@@ -60,6 +73,8 @@ Environment config:
 
 - ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
 - ``AUTH``: credentials, either ``user:pass`` or ``{access-token}`` (default: ``None``)
+- ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
+- ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
 
 ```
 $ AUTH=XYPJTNBCDE-lVna SERVER=https://settings-writer.stage.mozaws.net/v1 python aws_lambda.py consistency_checks
@@ -99,6 +114,8 @@ Environment config:
 - ``BACKPORT_RECORDS_SOURCE_COLLECTION``: collection id to read records from
 - ``BACKPORT_RECORDS_DEST_BUCKET``: bucket id to copy records to (default: same as source bucket)
 - ``BACKPORT_RECORDS_DEST_COLLECTION``:collection id to copy records to (default: same as source collection)
+- ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
+- ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
 
 Example:
 
