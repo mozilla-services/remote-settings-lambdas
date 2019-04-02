@@ -26,6 +26,8 @@ $ docker run remote-settings-lambdas validate_signature
 Environment config:
 
 - ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
+- ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
+- ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
 
 Example:
 
@@ -59,6 +61,8 @@ Environment config:
 
 - ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
 - ``REFRESH_SIGNATURE_AUTH``: credentials, either ``user:pass`` or ``{access-token}`` (default: ``None``)
+- ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
+- ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
 
 Example:
 
@@ -81,6 +85,9 @@ Environment config:
 
 - ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
 - ``AUTH``: credentials, either ``user:pass`` or ``{access-token}`` (default: ``None``)
+- ``PARALLEL_REQUESTS``: Number of parallel requests (default: ``4``)
+- ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
+- ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
 
 Example:
 
@@ -122,6 +129,8 @@ Environment config:
 - ``BACKPORT_RECORDS_SOURCE_COLLECTION``: collection id to read records from
 - ``BACKPORT_RECORDS_DEST_BUCKET``: bucket id to copy records to (default: same as source bucket)
 - ``BACKPORT_RECORDS_DEST_COLLECTION``:collection id to copy records to (default: same as source collection)
+- ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
+- ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
 
 Example:
 
@@ -149,6 +158,9 @@ Environment config:
 - ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
 - ``BUCKET``: monitor changes bucket (default: ``monitor``)
 - ``COLLECTION``: monitor changes collection (default: ``changes``)
+- ``PARALLEL_REQUESTS``: Number of parallel requests (default: ``4``)
+- ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
+- ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
 
 
 ### blockpages_generator
@@ -161,6 +173,8 @@ Environment config:
 - ``PLUGINS_COLLECTIONS``: Addons blocklist (default: ``plugins``)
 - ``AWS_REGION``: AWS S3 region (default: ``eu-central-1``)
 - ``BUCKET_NAME``: AWS bucket name (default: ``amo-blocked-pages``)
+- ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
+- ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
 
 ### uptake_health
 
@@ -172,6 +186,8 @@ Environment config:
 - `EXCLUDE_SOURCES`: Comma separated list of sources to ignore (see code for default)
 - `MIN_TOTAL_ENTRIES`: Integer of the minimum entries to even try (see code for default)
 - `DEFAULT_ERROR_THRESHOLD_PERCENT`: Floating point number for default threshold (see code for default)
+- `REQUESTS_TIMEOUT_SECONDS`: Connection/Read timeout in seconds (default: ``2``)
+- `REQUESTS_NB_RETRIES`: Number of retries before failing (default: ``4``)
 
 Example:
 

@@ -1,5 +1,6 @@
 import os
-from kinto_http import Client
+
+from . import KintoClient as Client
 
 
 def validate_changes_collection(event, context, **kwargs):

@@ -2,10 +2,9 @@ import concurrent
 import copy
 import os
 
-from kinto_http import Client, BearerTokenAuth
+from kinto_http import BearerTokenAuth
 
-
-PARALLEL_REQUESTS = 4
+from . import PARALLEL_REQUESTS, KintoClient as Client
 
 
 def records_equal(a, b):
