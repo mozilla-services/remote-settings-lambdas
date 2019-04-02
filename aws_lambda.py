@@ -121,19 +121,19 @@ class Client(KintoClient):
 
     @retry_timeout
     def server_info(self, *args, **kwargs):
-        super().server_info(*args, **kwargs)
+        return super().server_info(*args, **kwargs)
 
     @retry_timeout
     def get_collection(self, *args, **kwargs):
-        super().get_collection(*args, **kwargs)
+        return super().get_collection(*args, **kwargs)
 
     @retry_timeout
     def get_records(self, *args, **kwargs):
-        super().get_records(*args, **kwargs)
+        return super().get_records(*args, **kwargs)
 
     @retry_timeout
     def get_records_timestamp(self, *args, **kwargs):
-        super().get_records_timestamp(*args, **kwargs)
+        return super().get_records_timestamp(*args, **kwargs)
 
 
 def download_collection_data(server_url, collection):
