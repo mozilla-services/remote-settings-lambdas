@@ -1,4 +1,5 @@
 amo2kinto
+backoff
 botocore
 boto3
 cryptography
