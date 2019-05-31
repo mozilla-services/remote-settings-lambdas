@@ -4,3 +4,4 @@ venv/
 __pycache__/
 docs/build/
 requests_cache1.sqlite
+.vscode/
