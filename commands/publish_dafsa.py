@@ -18,35 +18,38 @@ SERVER = "https://kinto.dev.mozaws.net/v1"
 CREDENTIALS = ("arpit73", "s3cr3t")  # (username, password)
 
 
-def get_latest_hash(url):
-    try:
-        response = requests.get(url)
-        return response.json()["sha"]
-    except HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err}")
-    except Exception as err:
-        print(f"Other error occurred: {err}")
-    else:
-        print("Fetching Failed")
-
-
-# can be replaced with requests later to avoid extra dependency
-def download_resources(*urls, **kwargs):
-    for url in urls:
-        file_location = kwargs["directory"] + "/" + url.split("/")[-1]
-        print(file_location)
+def handle_request_errors(func):
+    def inner(*args, **kwargs):
         try:
-            response = requests.get(url, stream=True)
-            with open(file_location, "wb") as f:
-                for chunk in response.iter_content(chunk_size=1024):
-                    if chunk:
-                        f.write(chunk)
-                    else:
-                        print("Error!!!")
+            return func(*args, **kwargs)
         except HTTPError as http_err:
             print(f"HTTP error occurred: {http_err}")
         except Exception as err:
             print(f"Other error occurred: {err}")
+        else:
+            print("Fetching Failed")
+
+    return inner
+
+
+@handle_request_errors
+def get_latest_hash(url):
+    response = requests.get(url)
+    return response.json()["sha"]
+
+
+@handle_request_errors
+def download_resources(*urls, **kwargs):
+    for url in urls:
+        file_location = kwargs["directory"] + "/" + url.split("/")[-1]
+        print(file_location)
+        response = requests.get(url, stream=True)
+        with open(file_location, "wb") as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+                else:
+                    print("Error!!!")
 
 
 # TODO
@@ -87,7 +90,7 @@ with tempfile.TemporaryDirectory() as tmp:
             f"{tmp}/etld_data.inc",
         ]
     )
-    subprocess.run(["ls",tmp])
+    subprocess.run(["ls", tmp])
     latest_hash = get_latest_hash(COMMIT_HASH_URL)
     # publish_dafsa(SERVER, CREDENTIALS, latest_hash)
 
