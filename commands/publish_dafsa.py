@@ -19,7 +19,7 @@ PREPARE_TLDS_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_
 SERVER = "https://kinto.dev.mozaws.net/v1"
 CREDENTIALS = (os.getenv("USERNAME"), os.getenv("PASSWORD"))  # (username, password)
 
-BUCKET_ID = "firefox-core-network-dns"
+BUCKET_ID = "test-firefox-core-network-dns"
 COLLECTION_ID = "public-suffix-list"
 RECORD_ID = "latest-commit-hash"
 
@@ -75,28 +75,34 @@ def make_dafsa_and_publish(client, latest_hash):
         prepare_tlds.py is called with the two arguments the location of 
         the downloaded public suffix list and the name of the output file
         """
+        output_filepath = f"{tmp}/etld_data.json"
+
         subprocess.run(
             [
                 "python3",
                 f"{tmp}/prepare_tlds.py",
                 f"{tmp}/public_suffix_list.dat",
-                f"{tmp}/etld_data.json",
+                output_filepath,
             ]
         )
 
         subprocess.run(["ls", tmp])
 
+        # Upload the record
         client.update_record(
             id=RECORD_ID,
             data={"latest-commit-hash": latest_hash},
             collection=COLLECTION_ID,
             bucket=BUCKET_ID,
         )
-        filepath = f"{tmp}/etld_data.inc"
-        mimetype, _ = mimetypes.guess_type(filepath)
-        filename = os.path.basename(filepath)
-        filecontent = open(filepath, "rb").read()
-        record_uri = client.get_endpoint("record", id=RECORD_ID)
+        
+        # Upload the attachment
+        mimetype, _ = mimetypes.guess_type(output_filepath)
+        filename = os.path.basename(output_filepath)
+        filecontent = open(output_filepath, "rb").read()
+        record_uri = client.get_endpoint(
+            "record", id=RECORD_ID, bucket=BUCKET_ID, collection=COLLECTION_ID
+        )
         attachment_uri = f"{record_uri}/attachment"
         multipart = [("attachment", (filename, filecontent, mimetype))]
         try:
@@ -104,7 +110,7 @@ def make_dafsa_and_publish(client, latest_hash):
                 method="post", endpoint=attachment_uri, files=multipart
             )
         except KintoException as e:
-            print(filepath, "error during upload.", e)
+            print(output_filepath, "error during upload.", e)
         else:
             print(body)
 
