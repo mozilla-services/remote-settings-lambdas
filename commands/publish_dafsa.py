@@ -91,10 +91,8 @@ def publish_dafsa():
     client = Client(server_url=SERVER, auth=CREDENTIALS)
     latest_hash = get_latest_hash(COMMIT_HASH_URL)
     record = client.get_record(id=RECORD_ID, bucket=BUCKET_ID, collection=COLLECTION_ID)
-    if record_exists(record):
-        if record["data"]["latest-commit-hash"] == latest_hash:
-            return 0
-        else:
-            make_dafsa_and_publish(client, latest_hash)
+    if record_exists(record) and (record["data"]["latest-commit-hash"] == latest_hash):
+        return 0
     else:
         make_dafsa_and_publish(client, latest_hash)
+
