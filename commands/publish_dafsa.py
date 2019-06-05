@@ -2,7 +2,8 @@ import requests
 from requests.exceptions import HTTPError
 import tempfile
 import subprocess
-from kinto_http import Client
+from kinto_http import Client, KintoException
+import sys
 
 COMMIT_HASH_URL = "https://api.github.com/repos/publicsuffix/list/commits/master"
 
@@ -41,6 +42,7 @@ def get_latest_hash(url):
 @handle_request_errors
 def download_resources(*urls, **kwargs):
     for url in urls:
+        # file_location is found by appending the file_name(at the end of url string) to temp directory
         file_location = kwargs["directory"] + "/" + url.split("/")[-1]
         print(file_location)
         response = requests.get(url, stream=True)
@@ -63,24 +65,41 @@ def publish_dafsa(server, credentials, commit_hash):
     collection_id = "public-suffix-list"
     record_id = "latest-commit-hash"
 
-    client = Client(server_url=SERVER, auth=credentials)
-    client.create_bucket(id=bucket_id)
-    client.create_collection(id=collection_id, bucket=bucket_id)
+    client = Client(server_url=server, auth=credentials)
 
-    client.create_record(
-        id=record_id,
-        data={"latest-commit-hash": commit_hash},
-        collection=collection_id,
-        bucket=bucket_id,
-    )
+    latest_hash = get_latest_hash(COMMIT_HASH_URL)
+
+    try:
+        record = client.get_record(
+            id=record_id, bucket=bucket_id, collection=collection_id
+        )
+    except KintoException as e:
+        print(e)
+        client.create_record(
+            id=record_id,
+            data={"latest-commit-hash": commit_hash},
+            collection=collection_id,
+            bucket=bucket_id,
+        )
+
+
+    if record["data"]["latest-commit-hash"] == latest_hash:
+        sys.exit()
+    else:
+        client.update_record(
+            id=record_id,
+            data={"latest-commit-hash": commit_hash, "blah": "blah"},
+            collection=collection_id,
+            bucket=bucket_id,
+        )
 
 
 with tempfile.TemporaryDirectory() as tmp:
     # print(tmp)
     download_resources(LIST_URL, MAKE_DAFSA_PY, PREPARE_TLDS_PY, directory=tmp)
     """
-       prepare_tlds.py is called with the two arguments the location
-       of the downloaded public suffix list and the name of the output file
+       prepare_tlds.py is called with the two arguments the location of 
+       the downloaded public suffix list and the name of the output file
     """
     subprocess.run(
         [
@@ -92,5 +111,4 @@ with tempfile.TemporaryDirectory() as tmp:
     )
     subprocess.run(["ls", tmp])
     latest_hash = get_latest_hash(COMMIT_HASH_URL)
-    # publish_dafsa(SERVER, CREDENTIALS, latest_hash)
-
+    publish_dafsa(SERVER, CREDENTIALS, latest_hash)
