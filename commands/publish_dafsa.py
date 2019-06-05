@@ -52,7 +52,8 @@ def get_latest_hash():
 def download_resources(directory, *urls):
     for url in urls:
         # file_location is found by appending the file_name(at the end of url string) to temp directory
-        file_location = directory + "/" + url.split("/")[-1]
+        file_name = os.path.basename(url)
+        file_location = os.path.join(directory, file_name)
         print(file_location)
         response = requests.get(url, stream=True)
         with open(file_location, "wb") as f:
@@ -75,15 +76,12 @@ def make_dafsa_and_publish(client, latest_hash):
         prepare_tlds.py is called with the two arguments the location of 
         the downloaded public suffix list and the name of the output file
         """
-        output_filepath = f"{tmp}/etld_data.json"
+        prepare_tlds_py_path = os.path.join(tmp, "prepare_tlds.py")
+        raw_psl_path = os.path.join(tmp, "public_suffix_list.dat")
+        output_binary_path = os.path.join(tmp, "etld_data.json")
 
         subprocess.run(
-            [
-                "python3",
-                f"{tmp}/prepare_tlds.py",
-                f"{tmp}/public_suffix_list.dat",
-                output_filepath,
-            ]
+            ["python3", prepare_tlds_py_path, raw_psl_path, output_binary_path]
         )
 
         subprocess.run(["ls", tmp])
@@ -95,11 +93,11 @@ def make_dafsa_and_publish(client, latest_hash):
             collection=COLLECTION_ID,
             bucket=BUCKET_ID,
         )
-        
+
         # Upload the attachment
-        mimetype, _ = mimetypes.guess_type(output_filepath)
-        filename = os.path.basename(output_filepath)
-        filecontent = open(output_filepath, "rb").read()
+        mimetype, _ = mimetypes.guess_type(output_binary_path)
+        filename = os.path.basename(output_binary_path)
+        filecontent = open(output_binary_path, "rb").read()
         record_uri = client.get_endpoint(
             "record", id=RECORD_ID, bucket=BUCKET_ID, collection=COLLECTION_ID
         )
@@ -110,7 +108,7 @@ def make_dafsa_and_publish(client, latest_hash):
                 method="post", endpoint=attachment_uri, files=multipart
             )
         except KintoException as e:
-            print(output_filepath, "error during upload.", e)
+            print(output_binary_path, "error during upload.", e)
         else:
             print(body)
 
@@ -118,7 +116,12 @@ def make_dafsa_and_publish(client, latest_hash):
 def publish_dafsa():
     client = Client(server_url=SERVER, auth=CREDENTIALS)
     latest_hash = get_latest_hash()
-    record = client.get_record(id=RECORD_ID, bucket=BUCKET_ID, collection=COLLECTION_ID)
+    try:
+        record = client.get_record(
+            id=RECORD_ID, bucket=BUCKET_ID, collection=COLLECTION_ID
+        )
+    except KintoException as e:
+        print(e)
     if record_exists(record) and (record["data"]["latest-commit-hash"] == latest_hash):
         return 0
     else:
