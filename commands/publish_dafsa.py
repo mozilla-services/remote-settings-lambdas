@@ -49,10 +49,10 @@ def get_latest_hash():
 
 
 @handle_request_errors
-def download_resources(*urls, **kwargs):
+def download_resources(directory, *urls):
     for url in urls:
         # file_location is found by appending the file_name(at the end of url string) to temp directory
-        file_location = kwargs["directory"] + "/" + url.split("/")[-1]
+        file_location = directory + "/" + url.split("/")[-1]
         print(file_location)
         response = requests.get(url, stream=True)
         with open(file_location, "wb") as f:
@@ -70,7 +70,7 @@ def record_exists(record):
 
 def make_dafsa_and_publish(client, latest_hash):
     with tempfile.TemporaryDirectory() as tmp:
-        download_resources(LIST_URL, MAKE_DAFSA_PY, PREPARE_TLDS_PY, directory=tmp)
+        download_resources(tmp, LIST_URL, MAKE_DAFSA_PY, PREPARE_TLDS_PY)
         """
         prepare_tlds.py is called with the two arguments the location of 
         the downloaded public suffix list and the name of the output file
