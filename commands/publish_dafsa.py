@@ -17,7 +17,7 @@ PREPARE_TLDS_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_
 
 
 SERVER = "https://kinto.dev.mozaws.net/v1"
-CREDENTIALS = ("arpit73", "s3cr3t")  # (username, password)
+CREDENTIALS = (os.getenv("USERNAME"), os.getenv("PASSWORD"))  # (username, password)
 
 BUCKET_ID = "firefox-core-network-dns"
 COLLECTION_ID = "public-suffix-list"
