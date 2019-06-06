@@ -3,7 +3,6 @@ from requests.exceptions import HTTPError
 import tempfile
 import subprocess
 from kinto_http import Client, KintoException
-import mimetypes
 import os
 
 COMMIT_HASH_URL = "https://api.github.com/repos/publicsuffix/list/commits/master"
@@ -19,7 +18,7 @@ PREPARE_TLDS_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_
 SERVER = "https://kinto.dev.mozaws.net/v1"
 CREDENTIALS = (os.getenv("USERNAME"), os.getenv("PASSWORD"))  # (username, password)
 
-BUCKET_ID = "test-firefox-core-network-dns"
+BUCKET_ID = "firefox-core-network-dns"
 COLLECTION_ID = "public-suffix-list"
 RECORD_ID = "latest-commit-hash"
 
@@ -41,6 +40,8 @@ def handle_request_errors(func):
 @handle_request_errors
 def get_latest_hash():
     response = requests.get(COMMIT_HASH_URL)
+    response.raise_for_status()
+
     modified_files = response.json()["files"]
     for f in modified_files:
         if f["filename"] == "public_suffix_list.dat":
@@ -56,17 +57,14 @@ def download_resources(directory, *urls):
         file_location = os.path.join(directory, file_name)
         print(file_location)
         response = requests.get(url, stream=True)
+        response.raise_for_status()
+
         with open(file_location, "wb") as f:
             for chunk in response.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
                 else:
                     print("Error!!!")
-
-
-def record_exists(record):
-    # will check if a valid record exists already a and return true if so
-    return False
 
 
 def make_dafsa_and_publish(client, latest_hash):
@@ -76,10 +74,13 @@ def make_dafsa_and_publish(client, latest_hash):
         prepare_tlds.py is called with the two arguments the location of 
         the downloaded public suffix list and the name of the output file
         """
+        output_binary_name = "etld_data.json"
+
         prepare_tlds_py_path = os.path.join(tmp, "prepare_tlds.py")
         raw_psl_path = os.path.join(tmp, "public_suffix_list.dat")
-        output_binary_path = os.path.join(tmp, "etld_data.json")
+        output_binary_path = os.path.join(tmp, output_binary_name)
 
+        # Make the DAFSA
         subprocess.run(
             ["python3", prepare_tlds_py_path, raw_psl_path, output_binary_path]
         )
@@ -87,45 +88,36 @@ def make_dafsa_and_publish(client, latest_hash):
         subprocess.run(["ls", tmp])
 
         # Upload the record
-        client.update_record(
-            id=RECORD_ID,
-            data={"latest-commit-hash": latest_hash},
-            collection=COLLECTION_ID,
-            bucket=BUCKET_ID,
-        )
+        client.update_record(id=RECORD_ID, data={"latest-commit-hash": latest_hash})
 
         # Upload the attachment
-        mimetype, _ = mimetypes.guess_type(output_binary_path)
-        filename = os.path.basename(output_binary_path)
+        mimetype = "application/octet-stream"
+        filename = output_binary_name
         filecontent = open(output_binary_path, "rb").read()
-        record_uri = client.get_endpoint(
-            "record", id=RECORD_ID, bucket=BUCKET_ID, collection=COLLECTION_ID
-        )
+        record_uri = client.get_endpoint("record", id=RECORD_ID)
         attachment_uri = f"{record_uri}/attachment"
         multipart = [("attachment", (filename, filecontent, mimetype))]
-        try:
-            body, _ = client.session.request(
-                method="post", endpoint=attachment_uri, files=multipart
-            )
-        except KintoException as e:
-            print(output_binary_path, "error during upload.", e)
-        else:
-            print(body)
+        body, _ = client.session.request(
+            method="post", endpoint=attachment_uri, files=multipart
+        )
+        print(body)
 
 
 def publish_dafsa():
-    client = Client(server_url=SERVER, auth=CREDENTIALS)
+    client = Client(
+        server_url=SERVER, auth=CREDENTIALS, bucket=BUCKET_ID, collection=COLLECTION_ID
+    )
     latest_hash = get_latest_hash()
-    try:
-        record = client.get_record(
-            id=RECORD_ID, bucket=BUCKET_ID, collection=COLLECTION_ID
-        )
-    except KintoException as e:
-        print(e)
-    if record_exists(record) and (record["data"]["latest-commit-hash"] == latest_hash):
-        return 0
-    else:
-        make_dafsa_and_publish(client, latest_hash)
+    # try:
+    record = client.get_record(id=RECORD_ID)
+    print(record)
+    # except KintoException as e:
+    #     print(e)
+
+    # if record["data"]["latest-commit-hash"] == latest_hash:
+    #     return 0
+    # else:
+    make_dafsa_and_publish(client, latest_hash)
 
 
 publish_dafsa()
