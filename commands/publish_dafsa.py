@@ -1,11 +1,14 @@
 import requests
-from requests.exceptions import HTTPError
 import tempfile
+from requests.exceptions import HTTPError
+
+import os
 import subprocess
 from kinto_http import Client, KintoException
-import os
 
-COMMIT_HASH_URL = "https://api.github.com/repos/publicsuffix/list/commits/master"
+COMMIT_HASH_URL = (
+    "https://api.github.com/repos/publicsuffix/list/commits?path=public_suffix_list.dat"
+)
 
 LIST_URL = (
     "https://raw.githubusercontent.com/publicsuffix/list/master/public_suffix_list.dat"
@@ -41,12 +44,7 @@ def handle_request_errors(func):
 def get_latest_hash():
     response = requests.get(COMMIT_HASH_URL)
     response.raise_for_status()
-
-    modified_files = response.json()["files"]
-    for f in modified_files:
-        if f["filename"] == "public_suffix_list.dat":
-            return response.json()["sha"]
-    return ""
+    return response.json()[0]["sha"]
 
 
 @handle_request_errors
@@ -81,9 +79,11 @@ def make_dafsa_and_publish(client, latest_hash):
         output_binary_path = os.path.join(tmp, output_binary_name)
 
         # Make the DAFSA
-        subprocess.run(
+        run = subprocess.run(
             ["python3", prepare_tlds_py_path, raw_psl_path, output_binary_path]
         )
+        if run.returncode != 0:
+            return 1
 
         subprocess.run(["ls", tmp])
 
@@ -115,7 +115,7 @@ def publish_dafsa():
     #     print(e)
 
     # if record["data"]["latest-commit-hash"] == latest_hash:
-    #     return 0
+    #     return 1
     # else:
     make_dafsa_and_publish(client, latest_hash)
 
