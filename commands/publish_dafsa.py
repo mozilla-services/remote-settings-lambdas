@@ -6,6 +6,8 @@ import os
 import subprocess
 from kinto_http import Client, KintoException
 
+import json
+
 COMMIT_HASH_URL = (
     "https://api.github.com/repos/publicsuffix/list/commits?path=public_suffix_list.dat"
 )
@@ -83,12 +85,10 @@ def make_dafsa_and_publish(client, latest_hash):
             ["python3", prepare_tlds_py_path, raw_psl_path, output_binary_path]
         )
         if run.returncode != 0:
+            print("DAFSA Build Failed !!!")
             return 1
 
         subprocess.run(["ls", tmp])
-
-        # Upload the record
-        client.update_record(id=RECORD_ID, data={"latest-commit-hash": latest_hash})
 
         # Upload the attachment
         mimetype = "application/octet-stream"
@@ -97,8 +97,10 @@ def make_dafsa_and_publish(client, latest_hash):
         record_uri = client.get_endpoint("record", id=RECORD_ID)
         attachment_uri = f"{record_uri}/attachment"
         multipart = [("attachment", (filename, filecontent, mimetype))]
+        commit_hash = json.dumps({"commit-hash": latest_hash})
+
         body, _ = client.session.request(
-            method="post", endpoint=attachment_uri, files=multipart
+            method="post", data=commit_hash, endpoint=attachment_uri, files=multipart
         )
         print(body)
 
