@@ -8,19 +8,15 @@ from requests.exceptions import HTTPError
 from kinto_http import Client, KintoException
 
 
+PSL_FILENAME = "public_suffix_list.dat"
 
 COMMIT_HASH_URL = (
-    "https://api.github.com/repos/publicsuffix/list/commits?path=public_suffix_list.dat"
+    f"https://api.github.com/repos/publicsuffix/list/commits?path={PSL_FILENAME}"
 )
-LIST_URL = (
-    "https://raw.githubusercontent.com/publicsuffix/list/master/public_suffix_list.dat"
-)
+LIST_URL = f"https://raw.githubusercontent.com/publicsuffix/list/master/{PSL_FILENAME}"
 
 MAKE_DAFSA_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/make_dafsa.py"
 PREPARE_TLDS_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/prepare_tlds.py"
-
-SERVER = "https://kinto.dev.mozaws.net/v1"
-AUTH = (os.getenv("USERNAME"), os.getenv("PASSWORD"))  # (username, password)
 
 BUCKET_ID = "firefox-core-network-dns"
 COLLECTION_ID = "public-suffix-list"
@@ -38,19 +34,18 @@ def download_resources(directory, *urls):
         # file_location is found by appending the file_name(at the end of url string) to temp directory
         file_name = os.path.basename(url)
         file_location = os.path.join(directory, file_name)
-        print(file_location)
         response = requests.get(url, stream=True)
         response.raise_for_status()
 
         with open(file_location, "wb") as f:
             for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
+                try:
                     f.write(chunk)
-                else:
-                    print("Error!!!")
+                except IOError as e:
+                    raise Exception(f"IO Error Occurred: {e}")
 
 
-def make_dafsa_and_publish(latest_hash):
+def make_dafsa_and_publish(SERVER, AUTH, latest_hash):
     with tempfile.TemporaryDirectory() as tmp:
         download_resources(tmp, LIST_URL, MAKE_DAFSA_PY, PREPARE_TLDS_PY)
         """
@@ -68,8 +63,7 @@ def make_dafsa_and_publish(latest_hash):
             ["python3", prepare_tlds_py_path, raw_psl_path, output_binary_path]
         )
         if run.returncode != 0:
-            print("DAFSA Build Failed !!!")
-            return 1
+            raise Exception("DAFSA Build Failed !!!")
 
         subprocess.run(["ls", tmp])
         client = Client(
@@ -77,11 +71,10 @@ def make_dafsa_and_publish(latest_hash):
         )
         # Upload the attachment
         mimetype = "application/octet-stream"
-        filename = output_binary_name
         filecontent = open(output_binary_path, "rb").read()
         record_uri = client.get_endpoint("record", id=RECORD_ID)
         attachment_uri = f"{record_uri}/attachment"
-        multipart = [("attachment", (filename, filecontent, mimetype))]
+        multipart = [("attachment", (output_binary_name, filecontent, mimetype))]
         commit_hash = json.dumps({"commit-hash": latest_hash})
 
         body, _ = client.session.request(
@@ -90,10 +83,11 @@ def make_dafsa_and_publish(latest_hash):
         print(body)
 
 
-def publish_dafsa():
-    # client = Client(
-    #     server_url=SERVER, auth=AUTH, bucket=BUCKET_ID, collection=COLLECTION_ID
-    # )
+def publish_dafsa(event):
+
+    SERVER = event["server"]  # "https://kinto.dev.mozaws.net/v1"
+    AUTH = event.get("publish_dafsa_auth") or os.getenv("PUBLISH_DAFSA_AUTH")
+    
     latest_hash = get_latest_hash()
     # try:
     # record = client.get_record(id=RECORD_ID)
@@ -102,9 +96,5 @@ def publish_dafsa():
     #     print(e)
 
     # if record["data"]["latest-commit-hash"] == latest_hash:
-    #     return 1
     # else:
-    make_dafsa_and_publish(latest_hash)
-
-
-publish_dafsa()
+    make_dafsa_and_publish(SERVER, AUTH, latest_hash)
