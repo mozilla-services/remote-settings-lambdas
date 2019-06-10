@@ -1,12 +1,12 @@
-import requests
+import os
+import json
 import tempfile
+import subprocess
+import requests
 from requests.exceptions import HTTPError
 
-import os
-import subprocess
 from kinto_http import Client, KintoException
 
-import json
 
 
 COMMIT_HASH_URL = (
@@ -27,26 +27,12 @@ COLLECTION_ID = "public-suffix-list"
 RECORD_ID = "latest-commit-hash"
 
 
-def handle_request_errors(func):
-    def inner(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except HTTPError as http_err:
-            print(f"HTTP error occurred: {http_err}")
-        except Exception as err:
-            print(f"Other error occurred: {err}")
-
-    return inner
-
-
-@handle_request_errors
 def get_latest_hash():
     response = requests.get(COMMIT_HASH_URL)
     response.raise_for_status()
     return response.json()[0]["sha"]
 
 
-@handle_request_errors
 def download_resources(directory, *urls):
     for url in urls:
         # file_location is found by appending the file_name(at the end of url string) to temp directory
