@@ -57,7 +57,7 @@ def make_dafsa_and_publish(client, latest_hash):
 
         # Make the DAFSA
         run = subprocess.run(
-            ["python3", prepare_tlds_py_path, raw_psl_path, output_binary_path]
+            ["python3", prepare_tlds_py_path, raw_psl_path, output_binary_path, "--bin"]
         )
         if run.returncode != 0:
             raise Exception("DAFSA Build Failed !!!")
@@ -80,7 +80,7 @@ def make_dafsa_and_publish(client, latest_hash):
 def publish_dafsa(event):
 
     server = event.get("server") or os.getenv("SERVER")
-    auth = event.get("publish_dafsa_auth") or os.getenv("PUBLISH_DAFSA_AUTH")
+    auth = event.get("auth") or os.getenv("AUTH")
     # Auth format assumed to be "Username:Password"
     if auth:
         auth = tuple(auth.split(":", 1))
