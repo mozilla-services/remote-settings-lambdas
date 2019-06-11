@@ -2,9 +2,8 @@ import os
 import json
 import tempfile
 import subprocess
-import requests
-from requests.exceptions import HTTPError
 
+import requests
 from kinto_http import Client, KintoException
 
 
@@ -18,7 +17,7 @@ LIST_URL = f"https://raw.githubusercontent.com/publicsuffix/list/master/{PSL_FIL
 MAKE_DAFSA_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/make_dafsa.py"
 PREPARE_TLDS_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/prepare_tlds.py"
 
-BUCKET_ID = "firefox-core-network-dns"
+BUCKET_ID = "main-workspace"
 COLLECTION_ID = "public-suffix-list"
 RECORD_ID = "latest-commit-hash"
 
@@ -39,10 +38,7 @@ def download_resources(directory, *urls):
 
         with open(file_location, "wb") as f:
             for chunk in response.iter_content(chunk_size=1024):
-                try:
-                    f.write(chunk)
-                except IOError as e:
-                    raise Exception(f"IO Error Occurred: {e}")
+                f.write(chunk)
 
 
 def make_dafsa_and_publish(client, latest_hash):
@@ -53,10 +49,11 @@ def make_dafsa_and_publish(client, latest_hash):
         the downloaded public suffix list and the name of the output file
         """
         output_binary_name = "etld_data.json"
-
-        prepare_tlds_py_path = os.path.join(tmp, "prepare_tlds.py")
-        raw_psl_path = os.path.join(tmp, "public_suffix_list.dat")
+        
         output_binary_path = os.path.join(tmp, output_binary_name)
+        prepare_tlds_py_path = os.path.join(tmp, "prepare_tlds.py")
+        raw_psl_path = os.path.join(tmp, PSL_FILENAME)
+        
 
         # Make the DAFSA
         run = subprocess.run(
@@ -75,23 +72,23 @@ def make_dafsa_and_publish(client, latest_hash):
         multipart = [("attachment", (output_binary_name, filecontent, mimetype))]
         commit_hash = json.dumps({"commit-hash": latest_hash})
 
-        body, _ = client.session.request(
+        client.session.request(
             method="post", data=commit_hash, endpoint=attachment_uri, files=multipart
         )
 
 
 def publish_dafsa(event):
 
-    SERVER = event["server"] or os.getenv("PUBLISH_DAFSA_SERVER")
-    AUTH = event.get("publish_dafsa_auth") or os.getenv("PUBLISH_DAFSA_AUTH")
+    server = event.get("server") or os.getenv("SERVER")
+    auth = event.get("publish_dafsa_auth") or os.getenv("PUBLISH_DAFSA_AUTH")
     # Auth format assumed to be "Username:Password"
-    if AUTH:        
-        AUTH = tuple(AUTH.split(":", 1))
-    
+    if auth:
+        auth = tuple(auth.split(":", 1))
+
     latest_hash = get_latest_hash()
 
     client = Client(
-        server_url=SERVER, auth=AUTH, bucket=BUCKET_ID, collection=COLLECTION_ID
+        server_url=server, auth=auth, bucket=BUCKET_ID, collection=COLLECTION_ID
     )
 
     record = {}
@@ -101,6 +98,5 @@ def publish_dafsa(event):
         if not e.response or e.response.status != 404:
             raise KintoException(f"Record fetching failed: {e}")
 
-    if record["data"]["commit-hash"] != latest_hash:
+    if record.get("data", {}).get("commit-hash") != latest_hash:
         make_dafsa_and_publish(client, latest_hash)
-
