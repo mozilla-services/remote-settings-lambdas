@@ -84,7 +84,10 @@ def publish_dafsa(event):
 
     SERVER = event["server"] or os.getenv("PUBLISH_DAFSA_SERVER")
     AUTH = event.get("publish_dafsa_auth") or os.getenv("PUBLISH_DAFSA_AUTH")
-
+    # Auth format assumed to be "Username:Password"
+    if AUTH:        
+        AUTH = tuple(AUTH.split(":", 1))
+    
     latest_hash = get_latest_hash()
 
     client = Client(
