@@ -45,7 +45,7 @@ def download_resources(directory, *urls):
                     raise Exception(f"IO Error Occurred: {e}")
 
 
-def make_dafsa_and_publish(SERVER, AUTH, latest_hash):
+def make_dafsa_and_publish(client, latest_hash):
     with tempfile.TemporaryDirectory() as tmp:
         download_resources(tmp, LIST_URL, MAKE_DAFSA_PY, PREPARE_TLDS_PY)
         """
@@ -66,9 +66,7 @@ def make_dafsa_and_publish(SERVER, AUTH, latest_hash):
             raise Exception("DAFSA Build Failed !!!")
 
         subprocess.run(["ls", tmp])
-        client = Client(
-            server_url=SERVER, auth=AUTH, bucket=BUCKET_ID, collection=COLLECTION_ID
-        )
+
         # Upload the attachment
         mimetype = "application/octet-stream"
         filecontent = open(output_binary_path, "rb").read()
@@ -80,21 +78,26 @@ def make_dafsa_and_publish(SERVER, AUTH, latest_hash):
         body, _ = client.session.request(
             method="post", data=commit_hash, endpoint=attachment_uri, files=multipart
         )
-        print(body)
 
 
 def publish_dafsa(event):
 
-    SERVER = event["server"]  # "https://kinto.dev.mozaws.net/v1"
+    SERVER = event["server"] or os.getenv("PUBLISH_DAFSA_SERVER")
     AUTH = event.get("publish_dafsa_auth") or os.getenv("PUBLISH_DAFSA_AUTH")
-    
-    latest_hash = get_latest_hash()
-    # try:
-    # record = client.get_record(id=RECORD_ID)
-    # print(record)
-    # except KintoException as e:
-    #     print(e)
 
-    # if record["data"]["latest-commit-hash"] == latest_hash:
-    # else:
-    make_dafsa_and_publish(SERVER, AUTH, latest_hash)
+    latest_hash = get_latest_hash()
+
+    client = Client(
+        server_url=SERVER, auth=AUTH, bucket=BUCKET_ID, collection=COLLECTION_ID
+    )
+
+    record = {}
+    try:
+        record = client.get_record(id=RECORD_ID)
+    except KintoException as e:
+        if not e.response or e.response.status != 404:
+            raise KintoException(f"Record fetching failed: {e}")
+
+    if record["data"]["commit-hash"] != latest_hash:
+        make_dafsa_and_publish(client, latest_hash)
+
