@@ -47,8 +47,8 @@ def make_dafsa_and_publish(client, latest_hash):
         prepare_tlds.py is called with the two arguments the location of
         the downloaded public suffix list and the name of the output file
         """
-        output_binary_name = "etld_data.json"
 
+        output_binary_name = "etld_data.json"
         output_binary_path = os.path.join(tmp, output_binary_name)
         prepare_tlds_py_path = os.path.join(tmp, "prepare_tlds.py")
         raw_psl_path = os.path.join(tmp, PSL_FILENAME)
@@ -60,8 +60,6 @@ def make_dafsa_and_publish(client, latest_hash):
         if run.returncode != 0:
             raise Exception("DAFSA Build Failed !!!")
 
-        subprocess.run(["ls", tmp])
-
         # Upload the attachment
         mimetype = "application/octet-stream"
         filecontent = open(output_binary_path, "rb").read()
@@ -69,10 +67,11 @@ def make_dafsa_and_publish(client, latest_hash):
         attachment_uri = f"{record_uri}/attachment"
         multipart = [("attachment", (output_binary_name, filecontent, mimetype))]
         commit_hash = json.dumps({"commit-hash": latest_hash})
-
         client.session.request(
             method="post", data=commit_hash, endpoint=attachment_uri, files=multipart
         )
+
+        # Requesting the new record for review
         client.patch_collection(data={"status": "to-review"})
 
 
