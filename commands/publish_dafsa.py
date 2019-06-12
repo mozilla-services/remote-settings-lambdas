@@ -73,6 +73,7 @@ def make_dafsa_and_publish(client, latest_hash):
         client.session.request(
             method="post", data=commit_hash, endpoint=attachment_uri, files=multipart
         )
+        client.patch_collection(data={"status": "to-review"})
 
 
 def publish_dafsa(event, context):
