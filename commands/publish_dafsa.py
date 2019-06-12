@@ -44,8 +44,9 @@ def make_dafsa_and_publish(client, latest_hash):
     with tempfile.TemporaryDirectory() as tmp:
         download_resources(tmp, LIST_URL, MAKE_DAFSA_PY, PREPARE_TLDS_PY)
         """
-        prepare_tlds.py is called with the two arguments the location of
-        the downloaded public suffix list and the name of the output file
+        prepare_tlds.py is called with the three arguments the location of
+        the downloaded public suffix list, the name of the output file and
+        the '--bin' flag to create a binary file
         """
 
         output_binary_name = "etld_data.json"
