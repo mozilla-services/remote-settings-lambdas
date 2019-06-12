@@ -14,8 +14,12 @@ COMMIT_HASH_URL = (
 )
 LIST_URL = f"https://raw.githubusercontent.com/publicsuffix/list/master/{PSL_FILENAME}"
 
-MAKE_DAFSA_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/make_dafsa.py"
-PREPARE_TLDS_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/prepare_tlds.py"
+MAKE_DAFSA_PY = (
+    "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/make_dafsa.py" # noqa
+)
+PREPARE_TLDS_PY = (
+    "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/prepare_tlds.py" # noqa
+)
 
 BUCKET_ID = os.getenv("BUCKET_ID", "main-workspace")
 COLLECTION_ID = "public-suffix-list"
@@ -30,7 +34,6 @@ def get_latest_hash():
 
 def download_resources(directory, *urls):
     for url in urls:
-        # file_location is found by appending the file_name(at the end of url string) to temp directory
         file_name = os.path.basename(url)
         file_location = os.path.join(directory, file_name)
         response = requests.get(url, stream=True)
@@ -45,7 +48,7 @@ def make_dafsa_and_publish(client, latest_hash):
     with tempfile.TemporaryDirectory() as tmp:
         download_resources(tmp, LIST_URL, MAKE_DAFSA_PY, PREPARE_TLDS_PY)
         """
-        prepare_tlds.py is called with the two arguments the location of 
+        prepare_tlds.py is called with the two arguments the location of
         the downloaded public suffix list and the name of the output file
         """
         output_binary_name = "etld_data.json"
