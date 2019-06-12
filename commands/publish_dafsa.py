@@ -17,7 +17,7 @@ LIST_URL = f"https://raw.githubusercontent.com/publicsuffix/list/master/{PSL_FIL
 MAKE_DAFSA_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/make_dafsa.py"
 PREPARE_TLDS_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/prepare_tlds.py"
 
-BUCKET_ID = "main-workspace"
+BUCKET_ID = os.getenv("BUCKET_ID", "main-workspace")
 COLLECTION_ID = "public-suffix-list"
 RECORD_ID = "latest-commit-hash"
 
@@ -49,11 +49,10 @@ def make_dafsa_and_publish(client, latest_hash):
         the downloaded public suffix list and the name of the output file
         """
         output_binary_name = "etld_data.json"
-        
+
         output_binary_path = os.path.join(tmp, output_binary_name)
         prepare_tlds_py_path = os.path.join(tmp, "prepare_tlds.py")
         raw_psl_path = os.path.join(tmp, PSL_FILENAME)
-        
 
         # Make the DAFSA
         run = subprocess.run(
@@ -77,8 +76,7 @@ def make_dafsa_and_publish(client, latest_hash):
         )
 
 
-def publish_dafsa(event):
-
+def publish_dafsa(event, context):
     server = event.get("server") or os.getenv("SERVER")
     auth = event.get("auth") or os.getenv("AUTH")
     # Auth format assumed to be "Username:Password"
@@ -96,7 +94,7 @@ def publish_dafsa(event):
         record = client.get_record(id=RECORD_ID)
     except KintoException as e:
         if not e.response or e.response.status != 404:
-            raise KintoException(f"Record fetching failed: {e}")
+            raise
 
     if record.get("data", {}).get("commit-hash") != latest_hash:
         make_dafsa_and_publish(client, latest_hash)
