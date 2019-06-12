@@ -14,12 +14,8 @@ COMMIT_HASH_URL = (
 )
 LIST_URL = f"https://raw.githubusercontent.com/publicsuffix/list/master/{PSL_FILENAME}"
 
-MAKE_DAFSA_PY = (
-    "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/make_dafsa.py" # noqa
-)
-PREPARE_TLDS_PY = (
-    "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/prepare_tlds.py" # noqa
-)
+MAKE_DAFSA_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/make_dafsa.py"  # noqa
+PREPARE_TLDS_PY = "https://raw.githubusercontent.com/arpit73/temp_dafsa_testing_repo/master/publishing/prepare_tlds.py"  # noqa
 
 BUCKET_ID = os.getenv("BUCKET_ID", "main-workspace")
 COLLECTION_ID = "public-suffix-list"
