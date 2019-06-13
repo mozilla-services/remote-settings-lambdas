@@ -155,9 +155,9 @@ Unidecode==1.0.23 \
 hashin==0.14.5 \
     --hash=sha256:dbace6900d8de44f3106a64496803e45843cf4974755613db811a487fadbf4c6 \
     --hash=sha256:fe764df71cabbbddfa72aa4d6685581c932bb5cf9100ddee6b2b04f3446ae2f7
-urllib3==1.24.1 \
-    --hash=sha256:61bf29cada3fc2fbefad4fdf059ea4bd1b4a86d2b6d15e1c7c0b582b9752fe39 \
-    --hash=sha256:de9529817c93f27c8ccbfead6985011db27bd0ddfcdb2d86f3f663385c6a9c22
+urllib3==1.25.3 \
+    --hash=sha256:b246607a25ac80bedac05c6f282e3cdaf3afb65420fd024ac94435cabe6e18d1 \
+    --hash=sha256:dbe59173209418ae49d485b87d1681aefa36252ee85884c31346debd19463232
 packaging==19.0 \
     --hash=sha256:9e1cbf8c12b1f1ce0bb5344b8d7ecf66a6f8a6e91bcb0c84593ed6d3ab5c4ab3 \
     --hash=sha256:0c98a5d0be38ed775798ece1b9727178c4469d9c3b4ada66e8e6b7849f8732af
