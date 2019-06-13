@@ -22,8 +22,8 @@ COLLECTION_ID = "public-suffix-list"
 RECORD_ID = "latest-commit-hash"
 
 
-def get_latest_hash():
-    response = requests.get(COMMIT_HASH_URL)
+def get_latest_hash(url):
+    response = requests.get(url)
     response.raise_for_status()
     return response.json()[0]["sha"]
 
@@ -83,7 +83,7 @@ def publish_dafsa(event, context):
     if auth:
         auth = tuple(auth.split(":", 1))
 
-    latest_hash = get_latest_hash()
+    latest_hash = get_latest_hash(COMMIT_HASH_URL)
 
     client = Client(
         server_url=server, auth=auth, bucket=BUCKET_ID, collection=COLLECTION_ID
