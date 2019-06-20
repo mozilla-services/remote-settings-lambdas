@@ -49,15 +49,17 @@ def make_dafsa_and_publish(client, latest_hash):
         the '--bin' flag to create a binary file
         """
 
-        output_binary_name = "etld_data.json"
+        output_binary_name = "dafsa.json"
         output_binary_path = os.path.join(tmp, output_binary_name)
         prepare_tlds_py_path = os.path.join(tmp, "prepare_tlds.py")
         raw_psl_path = os.path.join(tmp, PSL_FILENAME)
 
         # Make the DAFSA
-        run = subprocess.run(
-            ["python3", prepare_tlds_py_path, raw_psl_path, output_binary_path, "--bin"]
+        command = f"python3 {prepare_tlds_py_path} {raw_psl_path} --bin > {output_binary_path}"
+        run = subprocess.Popen(
+            command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
         )
+        run.wait()
         if run.returncode != 0:
             raise Exception("DAFSA Build Failed !!!")
 

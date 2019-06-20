@@ -3,8 +3,8 @@ import tempfile
 import os
 import subprocess
 
+import requests
 import responses
-from requests import HTTPError
 from kinto_http import Client
 
 
@@ -33,7 +33,7 @@ class TestDafsaPublishingMethods(unittest.TestCase):
                 sorted(["public_suffix_list.dat", "prepare_tlds.py", "make_dafsa.py"]),
             )
 
-            output_binary_name = "etld_data.json"
+            output_binary_name = "dafsa.json"
             output_binary_path = os.path.join(tmp, output_binary_name)
             prepare_tlds_py_path = os.path.join(tmp, "prepare_tlds.py")
             raw_psl_path = os.path.join(tmp, PSL_FILENAME)
@@ -49,3 +49,7 @@ class TestDafsaPublishingMethods(unittest.TestCase):
             )
             self.assertEqual(run.returncode, 0)
             self.assertGreater(os.path.getsize(output_binary_path), 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
