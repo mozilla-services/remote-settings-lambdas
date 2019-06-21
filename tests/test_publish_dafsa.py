@@ -35,7 +35,7 @@ class TestDafsaPublishingMethods(unittest.TestCase):
                 sorted(["public_suffix_list.dat", "prepare_tlds.py", "make_dafsa.py"]),
             )
 
-            output_binary_name = "dafsa.json"
+            output_binary_name = "dafsa.bin"
             output_binary_path = os.path.join(tmp, output_binary_name)
             prepare_tlds_py_path = os.path.join(tmp, "prepare_tlds.py")
             raw_psl_path = os.path.join(tmp, PSL_FILENAME)
