@@ -103,5 +103,5 @@ def publish_dafsa(event, context):
 
     if record.get("data", {}).get("commit-hash") != latest_hash:
         with tempfile.TemporaryDirectory() as tmp:
-            binary_path = prepare_dafsa(tmp)
-            remote_settings_publish(client, latest_hash, binary_path)
+            output_binary_path = prepare_dafsa(tmp)
+            remote_settings_publish(client, latest_hash, output_binary_path)
