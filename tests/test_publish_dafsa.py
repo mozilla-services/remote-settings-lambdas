@@ -1,9 +1,8 @@
 import unittest
 import tempfile
 import os
-import json
+from unittest import mock
 
-import requests
 import responses
 from requests import HTTPError
 from kinto_http import Client
@@ -15,10 +14,12 @@ from commands.publish_dafsa import (
     prepare_dafsa,
     remote_settings_publish,
     publish_dafsa,
-    PSL_FILENAME,
     PREPARE_TLDS_PY,
     MAKE_DAFSA_PY,
     LIST_URL,
+    BUCKET_ID,
+    COLLECTION_ID,
+    RECORD_ID,
     COMMIT_HASH_URL,
 )
 
@@ -38,17 +39,93 @@ class TestUtilMethods(unittest.TestCase):
             self.assertRaises(HTTPError, download_resources(tmp, PREPARE_TLDS_PY + "c"))
 
 
-class TestDafsaCreationPublishingMethods(unittest.TestCase):
+class TestPrepareDafsa(unittest.TestCase):
     def test_prepare_dafsa(self):
         with tempfile.TemporaryDirectory() as tmp:
             output_binary_path = prepare_dafsa(tmp)
             self.assertIn(os.path.basename(output_binary_path), os.listdir(tmp))
             self.assertGreater(os.path.getsize(output_binary_path), 0)
 
+    def test_exception_is_raise_when_process_returns_non_zero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch("subprocess.Popen") as mocked:
+                mocked.return_value.returncode = 1
+                with self.assertRaises(Exception) as cm:
+                    prepare_dafsa(tmp)
+                    self.assertIn("DAFSA Build Failed", str(cm.exception))
+
+
+class TestRemoteSettingsPublish(unittest.TestCase):
     @responses.activate
     def test_remote_settings_publish(self):
-        responses.add(responses.GET, json)
+        server = "https://kinto.dev.mozaws.net/v1"
+        record_uri = f"{server}/buckets/main-workspace/collections/public-suffix-list/records/tld-dafsa"  # noqa
+        attachment_uri = f"{record_uri}/attachment"
+
+        responses.add(
+            responses.PUT,
+            f"{server}/accounts/arpit73",
+            adding_headers={"Content-Type": "application/json"},
+            data='{"data": {"password": "pAsSwErD"}}',
+        )
+        client = Client(
+            server_url=server,
+            auth=("arpit73", "pAsSwErD"),
+            bucket=BUCKET_ID,
+            collection=COLLECTION_ID,
+        )
+        self.assertEqual(
+            client.get_endpoint("record", id=RECORD_ID),
+            "/buckets/dafsa-bucket/collections/public-suffix-list/records/tld-dafsa",
+        )
+
+        responses.add(
+            responses.POST,
+            attachment_uri,
+            adding_headers={"Content-Type": "multipart/form-data"},
+            files={"attachment": ("dafsa.bin", b"some binary data")},
+            data='{"commit_hash": "abc"}',
+        )
+        responses.add(
+            responses.PATCH,
+            record_uri,
+            adding_headers={"Content-Type": "application/json"},
+            data='{"data": {"status": "to-review"}}',
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with open(f"{tmp}/dafsa.bin", "wb") as f:
+                f.write(b"some binary data")
+            remote_settings_publish(client, "abc", f"{tmp}/dafsa.bin")
 
 
-if __name__ == "__main__":
-    unittest.main()
+class TestPublishDafsa(unittest.TestCase):
+    def setUp(self):
+        mocked = mock.patch("commands.publish_dafsa.prepare_dafsa")
+        self.addCleanup(mocked.stop)
+        self.mocked_prepare = mocked.start()
+
+        mocked = mock.patch("commands.publish_dafsa.remote_settings_publish")
+        self.addCleanup(mocked.stop)
+        self.mocked_publish = mocked.start()
+
+    @responses.activate
+    def test_prepare_and_publish_are_not_called_when_hash_matches(self):
+        event = {
+            "server": "https://kinto.dev.mozaws.net/v1",
+            "auth": "arpit73:pAsSwErD",
+        }
+        record_uri = f"{{{event.get('server')}/buckets/main-workspace/collections/public-suffix-list/records/tld-dafsa}}"  # noqa
+        responses.add(responses.GET, record_uri, json={"data": {"commit-hash": "abc"}})
+        responses.add(
+            responses.PUT,
+            f"{{{event.get('server')}/accounts/arpit73}}",
+            adding_headers={"Content-Type": "application/json"},
+            data='{"data": {"password": "pAsSwErD"}}',
+        )
+        responses.add(responses.GET, COMMIT_HASH_URL, json=[{"sha": "abc"}])
+
+        publish_dafsa(event, context=None)
+
+        self.assertFalse(self.mocked_prepare.called)
+        self.assertFalse(self.mocked_publish.called)
