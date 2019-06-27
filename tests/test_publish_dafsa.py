@@ -1,11 +1,11 @@
-import unittest
-import tempfile
 import os
+import tempfile
+import unittest
 from unittest import mock
 
+import requests
 import responses
-from requests import HTTPError
-from kinto_http import Client
+from kinto_http import Client, KintoException
 
 
 from commands.publish_dafsa import (
@@ -27,7 +27,9 @@ from commands.publish_dafsa import (
 class TestUtilMethods(unittest.TestCase):
     def test_get_latest_hash(self):
         self.assertEqual(len(get_latest_hash(COMMIT_HASH_URL)), 40)
-        self.assertRaises(HTTPError, get_latest_hash(COMMIT_HASH_URL + "c"))
+        self.assertRaises(
+            requests.exceptions.HTTPError, get_latest_hash(COMMIT_HASH_URL + "c")
+        )
 
     def test_download_resources(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -36,7 +38,10 @@ class TestUtilMethods(unittest.TestCase):
                 sorted(os.listdir(tmp)),
                 sorted(["public_suffix_list.dat", "prepare_tlds.py", "make_dafsa.py"]),
             )
-            self.assertRaises(HTTPError, download_resources(tmp, PREPARE_TLDS_PY + "c"))
+            self.assertRaises(
+                requests.exceptions.HTTPError,
+                download_resources(tmp, PREPARE_TLDS_PY + "c"),
+            )
 
 
 class TestPrepareDafsa(unittest.TestCase):
@@ -101,6 +106,12 @@ class TestRemoteSettingsPublish(unittest.TestCase):
 
 class TestPublishDafsa(unittest.TestCase):
     def setUp(self):
+        self.event = {
+            "server": "https://kinto.dev.mozaws.net/v1",
+            "auth": "arpit73:pAsSwErD",
+        }
+        self.record_uri = f"{{{event.get('server')}/buckets/main-workspace/collections/public-suffix-list/records/tld-dafsa}}"  # noqa
+
         mocked = mock.patch("commands.publish_dafsa.prepare_dafsa")
         self.addCleanup(mocked.stop)
         self.mocked_prepare = mocked.start()
@@ -111,21 +122,39 @@ class TestPublishDafsa(unittest.TestCase):
 
     @responses.activate
     def test_prepare_and_publish_are_not_called_when_hash_matches(self):
-        event = {
-            "server": "https://kinto.dev.mozaws.net/v1",
-            "auth": "arpit73:pAsSwErD",
-        }
-        record_uri = f"{{{event.get('server')}/buckets/main-workspace/collections/public-suffix-list/records/tld-dafsa}}"  # noqa
-        responses.add(responses.GET, record_uri, json={"data": {"commit-hash": "abc"}})
+        responses.add(responses.GET, COMMIT_HASH_URL, json=[{"sha": "abc"}])
         responses.add(
             responses.PUT,
-            f"{{{event.get('server')}/accounts/arpit73}}",
+            f"{{{self.event.get('server')}/accounts/arpit73}}",
             adding_headers={"Content-Type": "application/json"},
             data='{"data": {"password": "pAsSwErD"}}',
         )
-        responses.add(responses.GET, COMMIT_HASH_URL, json=[{"sha": "abc"}])
+        responses.add(
+            responses.GET, self.record_uri, json={"data": {"commit-hash": "abc"}}
+        )
 
-        publish_dafsa(event, context=None)
+        publish_dafsa(self.event, context=None)
 
         self.assertFalse(self.mocked_prepare.called)
         self.assertFalse(self.mocked_publish.called)
+
+    @responses.activate
+    def test_KintoException_raised_when_fetching_failed(self):
+        responses.add(responses.GET, COMMIT_HASH_URL, json=[{"sha": "abc"}])
+        responses.add(
+            responses.PUT,
+            f"{{{self.event.get('server')}/accounts/arpit73}}",
+            adding_headers={"Content-Type": "application/json"},
+            data='{"data": {"password": "pAsSwErD"}}',
+        )
+        responses.add(
+            responses.GET, self.record_uri, json={"data": {"commit-hash": "abc"}}
+        )
+
+        with self.assertRaises(
+            KintoException, publish_dafsa(self.event, context=None)
+        ) as e:
+            self.assertEqual(e.response, None) or self.assertNotEqual(
+                e.response.status_code, 404
+            )
+

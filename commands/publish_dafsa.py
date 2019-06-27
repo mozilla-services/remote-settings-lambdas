@@ -98,7 +98,7 @@ def publish_dafsa(event, context):
     try:
         record = client.get_record(id=RECORD_ID)
     except KintoException as e:
-        if e.response is None or e.response.status != 404:
+        if e.response is None or e.response.status_code != 404:
             raise
 
     if record.get("data", {}).get("commit-hash") != latest_hash:
