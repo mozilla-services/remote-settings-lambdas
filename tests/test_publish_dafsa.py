@@ -27,8 +27,10 @@ from commands.publish_dafsa import (
 class TestUtilMethods(unittest.TestCase):
     def test_get_latest_hash(self):
         self.assertEqual(len(get_latest_hash(COMMIT_HASH_URL)), 40)
-        with self.assertRaises(requests.exceptions.HTTPError):
+        with self.assertRaises(IndexError):
             get_latest_hash(COMMIT_HASH_URL + "c")
+        with self.assertRaises(requests.exceptions.HTTPError):
+            get_latest_hash("".join(COMMIT_HASH_URL.split("repo")))
 
     def test_download_resources(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -68,7 +70,7 @@ class TestRemoteSettingsPublish(unittest.TestCase):
             responses.PUT,
             f"{server}/accounts/arpit73",
             adding_headers={"Content-Type": "application/json"},
-            data='{"data": {"password": "pAsSwErD"}}',
+            json='{"data": {"password": "pAsSwErD"}}',
         )
         client = Client(
             server_url=server,
@@ -86,13 +88,13 @@ class TestRemoteSettingsPublish(unittest.TestCase):
             attachment_uri,
             adding_headers={"Content-Type": "multipart/form-data"},
             files={"attachment": ("dafsa.bin", b"some binary data")},
-            data='{"commit_hash": "abc"}',
+            json='{"commit_hash": "abc"}',
         )
         responses.add(
             responses.PATCH,
             record_uri,
             adding_headers={"Content-Type": "application/json"},
-            data='{"data": {"status": "to-review"}}',
+            json='{"data": {"status": "to-review"}}',
         )
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -102,13 +104,10 @@ class TestRemoteSettingsPublish(unittest.TestCase):
 
 
 class TestPublishDafsa(unittest.TestCase):
-    def setUp(self):
-        self.event = {
-            "server": "https://kinto.dev.mozaws.net/v1",
-            "auth": "arpit73:pAsSwErD",
-        }
-        self.record_uri = f"{{{event.get('server')}/buckets/main-workspace/collections/public-suffix-list/records/tld-dafsa}}"  # noqa
+    event = {"server": "https://kinto.dev.mozaws.net/v1", "auth": "arpit73:pAsSwErD"}
+    record_uri = f"{{{event.get('server')}/buckets/main-workspace/collections/public-suffix-list/records/tld-dafsa}}"  # noqa
 
+    def setUp(self):
         mocked = mock.patch("commands.publish_dafsa.prepare_dafsa")
         self.addCleanup(mocked.stop)
         self.mocked_prepare = mocked.start()
@@ -120,12 +119,6 @@ class TestPublishDafsa(unittest.TestCase):
     @responses.activate
     def test_prepare_and_publish_are_not_called_when_hash_matches(self):
         responses.add(responses.GET, COMMIT_HASH_URL, json=[{"sha": "abc"}])
-        responses.add(
-            responses.PUT,
-            f"{{{self.event.get('server')}/accounts/arpit73}}",
-            adding_headers={"Content-Type": "application/json"},
-            data='{"data": {"password": "pAsSwErD"}}',
-        )
         responses.add(
             responses.GET, self.record_uri, json={"data": {"commit-hash": "abc"}}
         )
@@ -142,7 +135,7 @@ class TestPublishDafsa(unittest.TestCase):
             responses.PUT,
             f"{{{self.event.get('server')}/accounts/arpit73}}",
             adding_headers={"Content-Type": "application/json"},
-            data='{"data": {"password": "pAsSwErD"}}',
+            json='{"data": {"password": "pAsSwErD"}}',
         )
         responses.add(
             responses.GET, self.record_uri, json={"data": {"commit-hash": "abc"}}
