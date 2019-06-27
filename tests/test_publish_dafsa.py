@@ -27,9 +27,8 @@ from commands.publish_dafsa import (
 class TestUtilMethods(unittest.TestCase):
     def test_get_latest_hash(self):
         self.assertEqual(len(get_latest_hash(COMMIT_HASH_URL)), 40)
-        self.assertRaises(
-            requests.exceptions.HTTPError, get_latest_hash(COMMIT_HASH_URL + "c")
-        )
+        with self.assertRaises(requests.exceptions.HTTPError):
+            get_latest_hash(COMMIT_HASH_URL + "c")
 
     def test_download_resources(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -38,10 +37,8 @@ class TestUtilMethods(unittest.TestCase):
                 sorted(os.listdir(tmp)),
                 sorted(["public_suffix_list.dat", "prepare_tlds.py", "make_dafsa.py"]),
             )
-            self.assertRaises(
-                requests.exceptions.HTTPError,
+            with self.assertRaises(requests.exceptions.HTTPError):
                 download_resources(tmp, PREPARE_TLDS_PY + "c"),
-            )
 
 
 class TestPrepareDafsa(unittest.TestCase):
@@ -140,7 +137,7 @@ class TestPublishDafsa(unittest.TestCase):
 
     @responses.activate
     def test_KintoException_raised_when_fetching_failed(self):
-        responses.add(responses.GET, COMMIT_HASH_URL, json=[{"sha": "abc"}])
+        responses.add(responses.GET, COMMIT_HASH_URL + "c", json=[{"sha": "abc"}])
         responses.add(
             responses.PUT,
             f"{{{self.event.get('server')}/accounts/arpit73}}",
@@ -151,10 +148,8 @@ class TestPublishDafsa(unittest.TestCase):
             responses.GET, self.record_uri, json={"data": {"commit-hash": "abc"}}
         )
 
-        with self.assertRaises(
-            KintoException, publish_dafsa(self.event, context=None)
-        ) as e:
+        with self.assertRaises(KintoException) as e:
+            publish_dafsa(self.event, context=None)
             self.assertEqual(e.response, None) or self.assertNotEqual(
                 e.response.status_code, 404
             )
-
