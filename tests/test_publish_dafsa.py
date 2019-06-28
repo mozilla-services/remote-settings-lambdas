@@ -11,6 +11,7 @@ from kinto_http import Client, KintoException
 from commands.publish_dafsa import (
     get_latest_hash,
     download_resources,
+    get_stored_hash,
     prepare_dafsa,
     remote_settings_publish,
     publish_dafsa,
@@ -25,6 +26,15 @@ from commands.publish_dafsa import (
 
 
 class TestUtilMethods(unittest.TestCase):
+    event = {"server": "https://fake-server.net/v1", "auth": "arpit73:pAsSwErD"}
+    record_uri = f"{{{event.get('server')}/buckets/main-workspace/collections/public-suffix-list/records/tld-dafsa}}"  # noqa
+    client = Client(
+        server_url=event.get("server"),
+        auth=("arpit73", "pAsSwErD"),
+        bucket=BUCKET_ID,
+        collection=COLLECTION_ID,
+    )
+
     def test_get_latest_hash(self):
         self.assertEqual(len(get_latest_hash(COMMIT_HASH_URL)), 40)
         with self.assertRaises(IndexError):
@@ -40,7 +50,29 @@ class TestUtilMethods(unittest.TestCase):
                 sorted(["public_suffix_list.dat", "prepare_tlds.py", "make_dafsa.py"]),
             )
             with self.assertRaises(requests.exceptions.HTTPError):
-                download_resources(tmp, PREPARE_TLDS_PY + "c"),
+                download_resources(tmp, PREPARE_TLDS_PY + "c")
+
+    @responses.activate
+    def test_get_stored_hash(self):
+        responses.add(
+            responses.GET,
+            self.record_uri,
+            json={"data": {"commit-hash": "fake-commit-hash"}},
+        )
+        stored_hash = get_stored_hash(self.client)
+        self.assertEqual(stored_hash, "fake-commit-hash")
+
+    @responses.activate
+    def test_KintoException_raised_when_fetching_failed(self):
+        responses.add(
+            responses.GET,
+            self.record_uri,
+            json={"data": {"error": "not found"}},
+            status=404,
+        )
+        with self.assertRaises(KintoException) as e:
+            stored_hash = get_stored_hash(self.client)  # noqa
+            self.assertEqual(e.response.status_code, 404)
 
 
 class TestPrepareDafsa(unittest.TestCase):
@@ -119,7 +151,7 @@ class TestPublishDafsa(unittest.TestCase):
         self.assertFalse(self.mocked_publish.called)
 
     @responses.activate
-    def test_prepare_and_publish_are_called_when_hashes_do_not_matche(self):
+    def test_prepare_and_publish_are_called_when_hashes_do_not_match(self):
         responses.add(
             responses.GET, COMMIT_HASH_URL, json=[{"sha": "fake-commit-hash"}]
         )
@@ -134,17 +166,3 @@ class TestPublishDafsa(unittest.TestCase):
         self.assertTrue(self.mocked_prepare.called)
         self.assertTrue(self.mocked_publish.called)
 
-    @responses.activate
-    def test_KintoException_raised_when_fetching_failed(self):
-        responses.add(
-            responses.GET, COMMIT_HASH_URL + "c", json=[{"sha": "fake-commit-hash"}]
-        )
-        responses.add(
-            responses.GET,
-            self.record_uri,
-            json={"data": {"commit-hash": "fake-commit-hash"}},
-        )
-
-        with self.assertRaises(KintoException) as e:
-            publish_dafsa(self.event, context=None)
-            self.assertEqual(e.response.status_code, 404)

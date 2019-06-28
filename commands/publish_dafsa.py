@@ -40,6 +40,16 @@ def download_resources(directory, *urls):
                 f.write(chunk)
 
 
+def get_stored_hash(client):
+    record = {}
+    try:
+        record = client.get_record(id=RECORD_ID)
+    except KintoException as e:
+        if e.response is None or e.response.status_code == 404:
+            raise
+    return record.get("data", {}).get("commit-hash")
+
+
 def prepare_dafsa(directory):
     download_resources(directory, LIST_URL, MAKE_DAFSA_PY, PREPARE_TLDS_PY)
     """
@@ -88,20 +98,14 @@ def publish_dafsa(event, context):
     if auth:
         auth = tuple(auth.split(":", 1))
 
-    latest_hash = get_latest_hash(COMMIT_HASH_URL)
-
     client = Client(
         server_url=server, auth=auth, bucket=BUCKET_ID, collection=COLLECTION_ID
     )
 
-    record = {}
-    try:
-        record = client.get_record(id=RECORD_ID)
-    except KintoException as e:
-        if e.response is None or e.response.status_code == 404:
-            raise
+    latest_hash = get_latest_hash(COMMIT_HASH_URL)
+    stored_hash = get_stored_hash(client)
 
-    if record.get("data", {}).get("commit-hash") != latest_hash:
+    if stored_hash != latest_hash:
         with tempfile.TemporaryDirectory() as tmp:
             output_binary_path = prepare_dafsa(tmp)
             remote_settings_publish(client, latest_hash, output_binary_path)
