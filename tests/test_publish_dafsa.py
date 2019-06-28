@@ -44,57 +44,43 @@ class TestUtilMethods(unittest.TestCase):
 
 
 class TestPrepareDafsa(unittest.TestCase):
-    def test_prepare_dafsa(self):
+    def test_file_is_created_in_output_folder(self):
         with tempfile.TemporaryDirectory() as tmp:
             output_binary_path = prepare_dafsa(tmp)
             self.assertIn(os.path.basename(output_binary_path), os.listdir(tmp))
             self.assertGreater(os.path.getsize(output_binary_path), 0)
 
-    def test_exception_is_raise_when_process_returns_non_zero(self):
+    def test_exception_is_raised_when_process_returns_non_zero(self):
         with tempfile.TemporaryDirectory() as tmp:
             with mock.patch("subprocess.Popen") as mocked:
                 mocked.return_value.returncode = 1
-                with self.assertRaises(Exception) as cm:
+                with self.assertRaises(Exception) as e:
                     prepare_dafsa(tmp)
-                    self.assertIn("DAFSA Build Failed", str(cm.exception))
+                    self.assertIn("DAFSA Build Failed", str(e.exception))
 
 
 class TestRemoteSettingsPublish(unittest.TestCase):
     @responses.activate
     def test_remote_settings_publish(self):
-        server = "https://kinto.dev.mozaws.net/v1"
+        server = "https://fake-server.net.net/v1"
         record_uri = f"{server}/buckets/main-workspace/collections/public-suffix-list/records/tld-dafsa"  # noqa
         attachment_uri = f"{record_uri}/attachment"
 
-        responses.add(
-            responses.PUT,
-            f"{server}/accounts/arpit73",
-            adding_headers={"Content-Type": "application/json"},
-            json='{"data": {"password": "pAsSwErD"}}',
-        )
         client = Client(
             server_url=server,
             auth=("arpit73", "pAsSwErD"),
             bucket=BUCKET_ID,
             collection=COLLECTION_ID,
         )
-        self.assertEqual(
-            client.get_endpoint("record", id=RECORD_ID),
-            "/buckets/dafsa-bucket/collections/public-suffix-list/records/tld-dafsa",
-        )
 
         responses.add(
             responses.POST,
             attachment_uri,
-            adding_headers={"Content-Type": "multipart/form-data"},
             files={"attachment": ("dafsa.bin", b"some binary data")},
             json='{"commit_hash": "abc"}',
         )
         responses.add(
-            responses.PATCH,
-            record_uri,
-            adding_headers={"Content-Type": "application/json"},
-            json='{"data": {"status": "to-review"}}',
+            responses.PATCH, record_uri, json='{"data": {"status": "to-review"}}'
         )
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -104,7 +90,7 @@ class TestRemoteSettingsPublish(unittest.TestCase):
 
 
 class TestPublishDafsa(unittest.TestCase):
-    event = {"server": "https://kinto.dev.mozaws.net/v1", "auth": "arpit73:pAsSwErD"}
+    event = {"server": "https://fake-server.net/v1", "auth": "arpit73:pAsSwErD"}
     record_uri = f"{{{event.get('server')}/buckets/main-workspace/collections/public-suffix-list/records/tld-dafsa}}"  # noqa
 
     def setUp(self):
@@ -118,9 +104,13 @@ class TestPublishDafsa(unittest.TestCase):
 
     @responses.activate
     def test_prepare_and_publish_are_not_called_when_hash_matches(self):
-        responses.add(responses.GET, COMMIT_HASH_URL, json=[{"sha": "abc"}])
         responses.add(
-            responses.GET, self.record_uri, json={"data": {"commit-hash": "abc"}}
+            responses.GET, COMMIT_HASH_URL, json=[{"sha": "fake-commit-hash"}]
+        )
+        responses.add(
+            responses.GET,
+            self.record_uri,
+            json={"data": {"commit-hash": "fake-commit-hash"}},
         )
 
         publish_dafsa(self.event, context=None)
@@ -129,20 +119,32 @@ class TestPublishDafsa(unittest.TestCase):
         self.assertFalse(self.mocked_publish.called)
 
     @responses.activate
-    def test_KintoException_raised_when_fetching_failed(self):
-        responses.add(responses.GET, COMMIT_HASH_URL + "c", json=[{"sha": "abc"}])
+    def test_prepare_and_publish_are_called_when_hashes_do_not_matche(self):
         responses.add(
-            responses.PUT,
-            f"{{{self.event.get('server')}/accounts/arpit73}}",
-            adding_headers={"Content-Type": "application/json"},
-            json='{"data": {"password": "pAsSwErD"}}',
+            responses.GET, COMMIT_HASH_URL, json=[{"sha": "fake-commit-hash"}]
         )
         responses.add(
-            responses.GET, self.record_uri, json={"data": {"commit-hash": "abc"}}
+            responses.GET,
+            self.record_uri,
+            json={"data": {"commit-hash": "different-fake-commit-hash"}},
+        )
+
+        publish_dafsa(self.event, context=None)
+
+        self.assertTrue(self.mocked_prepare.called)
+        self.assertTrue(self.mocked_publish.called)
+
+    @responses.activate
+    def test_KintoException_raised_when_fetching_failed(self):
+        responses.add(
+            responses.GET, COMMIT_HASH_URL + "c", json=[{"sha": "fake-commit-hash"}]
+        )
+        responses.add(
+            responses.GET,
+            self.record_uri,
+            json={"data": {"commit-hash": "fake-commit-hash"}},
         )
 
         with self.assertRaises(KintoException) as e:
             publish_dafsa(self.event, context=None)
-            self.assertEqual(e.response, None) or self.assertNotEqual(
-                e.response.status_code, 404
-            )
+            self.assertEqual(e.response.status_code, 404)
