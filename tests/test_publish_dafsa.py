@@ -25,54 +25,51 @@ from commands.publish_dafsa import (
 )
 
 
-class TestUtilMethods(unittest.TestCase):
-    event = {"server": "https://fake-server.net/v1", "auth": "arpit73:pAsSwErD"}
-    record_uri = f"{{{event.get('server')}/buckets/main-workspace/collections/public-suffix-list/records/tld-dafsa}}"  # noqa
-    client = Client(
-        server_url=event.get("server"),
-        auth=("arpit73", "pAsSwErD"),
-        bucket=BUCKET_ID,
-        collection=COLLECTION_ID,
-    )
+class TestsGetLatestHash(unittest.TestCase):
+    def test_get_latest_hash_returns_sha1_hash(self):
+        size_latest_hash = len(get_latest_hash(COMMIT_HASH_URL))
+        self.assertEqual(size_latest_hash, 40)
 
-    def test_get_latest_hash(self):
-        self.assertEqual(len(get_latest_hash(COMMIT_HASH_URL)), 40)
-        with self.assertRaises(IndexError):
-            get_latest_hash(COMMIT_HASH_URL + "c")
-        with self.assertRaises(requests.exceptions.HTTPError):
-            get_latest_hash("".join(COMMIT_HASH_URL.split("repo")))
 
-    def test_download_resources(self):
+class TestDownloadResources(unittest.TestCase):
+    def test__all_files_downloaded_with_correct_names(self):
         with tempfile.TemporaryDirectory() as tmp:
             download_resources(tmp, PREPARE_TLDS_PY, MAKE_DAFSA_PY, LIST_URL)
             self.assertEqual(
                 sorted(os.listdir(tmp)),
                 sorted(["public_suffix_list.dat", "prepare_tlds.py", "make_dafsa.py"]),
             )
-            with self.assertRaises(requests.exceptions.HTTPError):
-                download_resources(tmp, PREPARE_TLDS_PY + "c")
 
     @responses.activate
-    def test_get_stored_hash(self):
-        responses.add(
-            responses.GET,
-            self.record_uri,
-            json={"data": {"commit-hash": "fake-commit-hash"}},
+    def test_HTTPError_raised_when_404(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            responses.add(
+                responses.GET, PREPARE_TLDS_PY, json={"error": "not found"}, status=404
+            )
+            with self.assertRaises(requests.exceptions.HTTPError) as e:
+                download_resources(tmp, PREPARE_TLDS_PY)
+                self.assertEqual(e.status_code, 404)
+
+
+class TestGetStoredHash(unittest.TestCase):
+    def setUp(self):
+        server = "https://fake-server.net/v1"
+        auth = ("arpit73", "pAsSwErD")
+        self.client = Client(
+            server_url=server, auth=auth, bucket=BUCKET_ID, collection=COLLECTION_ID
         )
-        stored_hash = get_stored_hash(self.client)
-        self.assertEqual(stored_hash, "fake-commit-hash")
+        self.record_uri = server + self.client.get_endpoint(
+            "record", id=RECORD_ID, bucket=BUCKET_ID, collection=COLLECTION_ID
+        )
 
     @responses.activate
-    def test_KintoException_raised_when_fetching_failed(self):
+    def test_KintoException_raised_when_stored_hash_fetching_failed(self):
         responses.add(
-            responses.GET,
-            self.record_uri,
-            json={"data": {"error": "not found"}},
-            status=404,
+            responses.GET, self.record_uri, json={"error": "not found"}, status=404
         )
         with self.assertRaises(KintoException) as e:
             stored_hash = get_stored_hash(self.client)  # noqa
-            self.assertEqual(e.response.status_code, 404)
+            self.assertEqual(e.status_code, 404)
 
 
 class TestPrepareDafsa(unittest.TestCase):
@@ -122,10 +119,12 @@ class TestRemoteSettingsPublish(unittest.TestCase):
 
 
 class TestPublishDafsa(unittest.TestCase):
-    event = {"server": "https://fake-server.net/v1", "auth": "arpit73:pAsSwErD"}
-    record_uri = f"{{{event.get('server')}/buckets/main-workspace/collections/public-suffix-list/records/tld-dafsa}}"  # noqa
-
     def setUp(self):
+        self.event = {
+            "server": "https://fake-server.net/v1",
+            "auth": "arpit73:pAsSwErD",
+        }
+
         mocked = mock.patch("commands.publish_dafsa.prepare_dafsa")
         self.addCleanup(mocked.stop)
         self.mocked_prepare = mocked.start()
@@ -136,15 +135,6 @@ class TestPublishDafsa(unittest.TestCase):
 
     @responses.activate
     def test_prepare_and_publish_are_not_called_when_hash_matches(self):
-        responses.add(
-            responses.GET, COMMIT_HASH_URL, json=[{"sha": "fake-commit-hash"}]
-        )
-        responses.add(
-            responses.GET,
-            self.record_uri,
-            json={"data": {"commit-hash": "fake-commit-hash"}},
-        )
-
         publish_dafsa(self.event, context=None)
 
         self.assertFalse(self.mocked_prepare.called)
@@ -165,4 +155,3 @@ class TestPublishDafsa(unittest.TestCase):
 
         self.assertTrue(self.mocked_prepare.called)
         self.assertTrue(self.mocked_publish.called)
-
