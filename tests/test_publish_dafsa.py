@@ -97,34 +97,41 @@ class TestPrepareDafsa(unittest.TestCase):
                     self.assertIn("DAFSA Build Failed", str(e.exception))
 
 
-# class TestRemoteSettingsPublish(unittest.TestCase):
-#     @responses.activate
-#     def test_remote_settings_publish(self):
-#         server = "https://fake-server.net.net/v1"
-#         record_uri = f"{server}/buckets/main-workspace/collections/public-suffix-list/records/tld-dafsa"  # noqa
-#         attachment_uri = f"{record_uri}/attachment"
+class TestRemoteSettingsPublish(unittest.TestCase):
+    def setUp(self):
+        server = "https://fake-server.net/v1"
+        auth = ("arpit73", "pAsSwErD")
+        self.client = Client(
+            server_url=server, auth=auth, bucket=BUCKET_ID, collection=COLLECTION_ID
+        )
+        record_uri = server + self.client.get_endpoint(
+            "record", id=RECORD_ID, bucket=BUCKET_ID, collection=COLLECTION_ID
+        )
+        self.collection_uri = server + self.client.get_endpoint(
+            "collection", bucket=BUCKET_ID, collection=COLLECTION_ID
+        )
+        self.attachment_uri = f"{record_uri}/attachment"
 
-#         client = Client(
-#             server_url=server,
-#             auth=("arpit73", "pAsSwErD"),
-#             bucket=BUCKET_ID,
-#             collection=COLLECTION_ID,
-#         )
+    @responses.activate
+    def test_record_was_posted(self):
+        responses.add(
+            responses.POST,
+            self.attachment_uri,
+            # body={"attachment": ("dafsa.bin", b"some binary data")},
+            json={"commit-hash": "fake-commit-hash"},
+        )
+        responses.add(
+            responses.PATCH, self.collection_uri, json={"data": {"status": "to-review"}}
+        )
 
-#         responses.add(
-#             responses.POST,
-#             attachment_uri,
-#             files={"attachment": ("dafsa.bin", b"some binary data")},
-#             json='{"commit_hash": "abc"}',
-#         )
-#         responses.add(
-#             responses.PATCH, record_uri, json='{"data": {"status": "to-review"}}'
-#         )
-
-#         with tempfile.TemporaryDirectory() as tmp:
-#             with open(f"{tmp}/dafsa.bin", "wb") as f:
-#                 f.write(b"some binary data")
-#             remote_settings_publish(client, "abc", f"{tmp}/dafsa.bin")
+        with tempfile.TemporaryDirectory() as tmp:
+            dafsa_filename = f"{tmp}/dafsa.bin"
+            with open(dafsa_filename, "wb") as f:
+                f.write(b"some binary data")
+            remote_settings_publish(self.client, "fake-commit-hash", dafsa_filename)
+            self.assertEqual(len(responses.calls), 2)
+            self.assertEqual(responses.calls[0].request.method, "POST")
+            self.assertEqual(responses.calls[1].request.method, "PATCH")
 
 
 class TestPublishDafsa(unittest.TestCase):
