@@ -30,6 +30,7 @@ class TestsGetLatestHash(unittest.TestCase):
         size_latest_hash = len(get_latest_hash(COMMIT_HASH_URL))
         self.assertEqual(size_latest_hash, 40)
 
+    @responses.activate
     def test_HTTPError_raised_when_404(self):
         responses.add(
             responses.GET, COMMIT_HASH_URL, json={"error": "not found"}, status=404
