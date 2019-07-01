@@ -36,7 +36,7 @@ class TestsGetLatestHash(unittest.TestCase):
             responses.GET, COMMIT_HASH_URL, json={"error": "not found"}, status=404
         )
         with self.assertRaises(requests.exceptions.HTTPError) as e:
-            latest_hash = get_latest_hash(COMMIT_HASH_URL)  # noqa
+            get_latest_hash(COMMIT_HASH_URL)
             self.assertEqual(e.status_code, 404)
 
 
@@ -72,12 +72,22 @@ class TestGetStoredHash(unittest.TestCase):
         )
 
     @responses.activate
+    def test_stored_hash_fetched_successfully(self):
+        responses.add(
+            responses.GET,
+            self.record_uri,
+            json={"data": {"commit-hash": "fake-commit-hash"}},
+        )
+        stored_hash = get_stored_hash(self.client)
+        self.assertEqual(stored_hash, "fake-commit-hash")
+
+    @responses.activate
     def test_KintoException_raised_when_stored_hash_fetching_failed(self):
         responses.add(
             responses.GET, self.record_uri, json={"error": "not found"}, status=404
         )
         with self.assertRaises(KintoException) as e:
-            stored_hash = get_stored_hash(self.client)  # noqa
+            get_stored_hash(self.client)
             self.assertEqual(e.status_code, 404)
 
 
@@ -117,8 +127,7 @@ class TestRemoteSettingsPublish(unittest.TestCase):
         responses.add(
             responses.POST,
             self.attachment_uri,
-            # body={"attachment": ("dafsa.bin", b"some binary data")},
-            json={"commit-hash": "fake-commit-hash"},
+            json={"data": {"commit-hash": "fake-commit-hash"}},
         )
         responses.add(
             responses.PATCH, self.collection_uri, json={"data": {"status": "to-review"}}
@@ -129,8 +138,13 @@ class TestRemoteSettingsPublish(unittest.TestCase):
             with open(dafsa_filename, "wb") as f:
                 f.write(b"some binary data")
             remote_settings_publish(self.client, "fake-commit-hash", dafsa_filename)
+
             self.assertEqual(len(responses.calls), 2)
+
+            self.assertEqual(responses.calls[0].request.url, self.attachment_uri)
             self.assertEqual(responses.calls[0].request.method, "POST")
+
+            self.assertEqual(responses.calls[1].request.url, self.collection_uri)
             self.assertEqual(responses.calls[1].request.method, "PATCH")
 
 
