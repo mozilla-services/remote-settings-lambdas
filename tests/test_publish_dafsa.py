@@ -26,9 +26,11 @@ from commands.publish_dafsa import (
 
 
 class TestsGetLatestHash(unittest.TestCase):
+    @responses.activate
     def test_get_latest_hash_returns_sha1_hash(self):
-        size_latest_hash = len(get_latest_hash(COMMIT_HASH_URL))
-        self.assertEqual(size_latest_hash, 40)
+        responses.add(responses.GET, COMMIT_HASH_URL, json=[{"sha": "hash"}])
+        latest_hash = get_latest_hash(COMMIT_HASH_URL)
+        self.assertEqual(latest_hash, "hash")
 
     @responses.activate
     def test_HTTPError_raised_when_404(self):
