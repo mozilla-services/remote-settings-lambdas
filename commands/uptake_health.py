@@ -3,7 +3,7 @@ from fnmatch import fnmatch
 from urllib.parse import urlencode
 
 import requests
-from decouple import config, undefined, Csv
+from decouple import config, Csv
 from requests.adapters import HTTPAdapter
 from requests.exceptions import HTTPError
 from requests.packages.urllib3.util.retry import Retry
@@ -33,8 +33,7 @@ REDASH_API_QUERY_URL = config(
 assert "api_key=" not in REDASH_API_QUERY_URL, "set in REDASH_API_KEY instead"
 
 REDASH_API_KEY = config(
-    "REDASH_API_KEY",
-    default=undefined if "api_key=" not in REDASH_API_QUERY_URL else None,
+    "REDASH_API_KEY", default="" if "api_key=" not in REDASH_API_QUERY_URL else None
 )
 
 REDASH_TIMEOUT_SECONDS = config("REDASH_TIMEOUT_SECONDS", cast=int, default=60)
