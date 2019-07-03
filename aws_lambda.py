@@ -56,6 +56,18 @@ def run(command):
     command(event, context)
 
 
+def __getattr__(name):
+    """Override the module getattr() in order to import the command when
+    invoked.
+    """
+    if name in dir():
+        return globals()[name]
+    # Import the command module and returns its main function.
+    mod = importlib.import_module(f"commands.{name}")
+    command = getattr(mod, name)
+    return command
+
+
 def main(*args):
     # Run the function specified in CLI arg.
     #
@@ -67,8 +79,7 @@ def main(*args):
         return
     entrypoint = args[0]
     try:
-        mod = importlib.import_module(f"commands.{entrypoint}")
-        command = getattr(mod, entrypoint)
+        command = getattr(sys.modules[__name__], entrypoint)
     except (ImportError, ModuleNotFoundError):
         print(f"Unknown function {entrypoint!r}", file=sys.stderr)
         help_()
