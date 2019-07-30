@@ -151,9 +151,9 @@ hashin==0.14.5 \
 urllib3==1.25.3 \
     --hash=sha256:b246607a25ac80bedac05c6f282e3cdaf3afb65420fd024ac94435cabe6e18d1 \
     --hash=sha256:dbe59173209418ae49d485b87d1681aefa36252ee85884c31346debd19463232
-packaging==19.0 \
-    --hash=sha256:9e1cbf8c12b1f1ce0bb5344b8d7ecf66a6f8a6e91bcb0c84593ed6d3ab5c4ab3 \
-    --hash=sha256:0c98a5d0be38ed775798ece1b9727178c4469d9c3b4ada66e8e6b7849f8732af
+packaging==19.1 \
+    --hash=sha256:a7ac867b97fdc07ee80a8058fe4435ccd274ecc3b0ed61d852d7d53055528cf9 \
+    --hash=sha256:c491ca87294da7cc01902edbe30a5bc6c4c28172b5138ab4e4aa1b9d7bfaeafe
 pip-api==0.0.11 \
     --hash=sha256:d3ab4b42582a740255fa122cb6166c2b46ad0f80a9d5bd6c1f74814cf21bd817 \
     --hash=sha256:37d7998d22c90ffc33cc8207a98f646946ffa5181ebc9eab3b2ac5ab9ddf8f11
