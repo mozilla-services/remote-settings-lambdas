@@ -98,9 +98,13 @@ def consistency_checks(event, context, **kwargs):
         source_metadata = client.get_collection(
             bucket=r["source"]["bucket"], id=r["source"]["collection"]
         )["data"]
-        status = source_metadata["status"]
 
         identifier = "{bucket}/{collection}".format(**r["destination"])
+
+        try:
+            status = source_metadata["status"]
+        except KeyError:
+            return identifier, ('"status" attribute missing',)
 
         # Collection status is reset on any modification, so if status is ``to-review``,
         # then records in the source should be exactly the same as the records in the preview
@@ -109,7 +113,7 @@ def consistency_checks(event, context, **kwargs):
             preview_records = client.get_records(**r["preview"])
             diff = compare_collections(source_records, preview_records)
             if diff:
-                return identifier, diff
+                return identifier, ("to-review: source and preview differ", diff)
 
         # And if status is ``signed``, then records in the source and preview should
         # all be the same as those in the destination.
@@ -127,7 +131,13 @@ def consistency_checks(event, context, **kwargs):
                 diff_preview = []
             # If difference detected, report it!
             if diff_source or diff_preview:
-                return identifier, diff_source + diff_preview
+                return (
+                    identifier,
+                    (
+                        "signed: source, preview, and/or destination differ",
+                        diff_source + diff_preview,
+                    ),
+                )
 
         else:
             # And if status is ``work-in-progress``, we can't really check anything.
@@ -151,7 +161,7 @@ def consistency_checks(event, context, **kwargs):
         for future in concurrent.futures.as_completed(futures):
             results.append(future.result())
 
-    inconsistent = [identifier for identifier, diff in results if diff]
+    inconsistent = [identifier for identifier, error_info in results if error_info]
     if inconsistent:
         raise ValueError(
             "Inconsistencies detected on {}".format(", ".join(inconsistent))
