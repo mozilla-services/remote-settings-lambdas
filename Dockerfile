@@ -13,6 +13,8 @@ RUN pip install --disable-pip-version-check --quiet --target /lambda -r /tmp/req
 
 # Add your source code
 ADD *.py /lambda/
+RUN mkdir /lambda/commands
+ADD commands/*.py /lambda/commands/
 RUN find /lambda -type d | xargs chmod ugo+rx && \
     find /lambda -type f | xargs chmod ugo+r
 
