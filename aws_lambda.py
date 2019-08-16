@@ -46,9 +46,17 @@ Available commands:
     )
 
 
-def run(command):
-    event = {"server": os.getenv("SERVER", "http://localhost:8888/v1")}
-    context = {"sentry_sdk": sentry_sdk}
+def run(command, event=None, context=None):
+    if event is None:
+        event = {"server": os.getenv("SERVER", "http://localhost:8888/v1")}
+    if context is None:
+        context = {"sentry_sdk": sentry_sdk}
+
+    if isinstance(command, (str,)):
+        # Import the command module and returns its main function.
+        mod = importlib.import_module(f"commands.{command}")
+        command = getattr(mod, command)
+
     # Note! If the sentry_sdk was initialized with
     # the AwsLambdaIntegration integration, it is now ready to automatically
     # capture all and any unexpected exceptions.
@@ -56,16 +64,32 @@ def run(command):
     command(event, context)
 
 
-def __getattr__(name):
-    """Override the module getattr() in order to import the command when
-    invoked.
-    """
-    if name in dir():
-        return globals()[name]
-    # Import the command module and returns its main function.
-    mod = importlib.import_module(f"commands.{name}")
-    command = getattr(mod, name)
-    return command
+def backport_records(*args, **kwargs):
+    return run("backport_records", *args, **kwargs)
+
+
+def blockpages_generator(*args, **kwargs):
+    return run("blockpages_generator", *args, **kwargs)
+
+
+def publish_dafsa(*args, **kwargs):
+    return run("publish_dafsa", *args, **kwargs)
+
+
+def refresh_signature(*args, **kwargs):
+    return run("refresh_signature", *args, **kwargs)
+
+
+def uptake_health(*args, **kwargs):
+    return run("uptake_health", *args, **kwargs)
+
+
+def validate_changes_collection(*args, **kwargs):
+    return run("validate_changes_collection", *args, **kwargs)
+
+
+def validate_signature(*args, **kwargs):
+    return run("validate_signature", *args, **kwargs)
 
 
 def main(*args):
@@ -79,12 +103,12 @@ def main(*args):
         return
     entrypoint = args[0]
     try:
-        command = getattr(sys.modules[__name__], entrypoint)
-    except (ImportError, ModuleNotFoundError):
+        command = globals()[entrypoint]
+    except KeyError:
         print(f"Unknown function {entrypoint!r}", file=sys.stderr)
         help_()
         return 1
-    run(command)
+    command()
 
 
 if __name__ == "__main__":
