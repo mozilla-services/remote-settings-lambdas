@@ -151,9 +151,9 @@ urllib3==1.25.3 \
 packaging==19.1 \
     --hash=sha256:a7ac867b97fdc07ee80a8058fe4435ccd274ecc3b0ed61d852d7d53055528cf9 \
     --hash=sha256:c491ca87294da7cc01902edbe30a5bc6c4c28172b5138ab4e4aa1b9d7bfaeafe
-pip-api==0.0.11 \
-    --hash=sha256:d3ab4b42582a740255fa122cb6166c2b46ad0f80a9d5bd6c1f74814cf21bd817 \
-    --hash=sha256:37d7998d22c90ffc33cc8207a98f646946ffa5181ebc9eab3b2ac5ab9ddf8f11
+pip-api==0.0.12 \
+    --hash=sha256:5266d9c8c9585e6fdeaf5d78f17b4e68dd2d657103fb24b80b629f70fac26712 \
+    --hash=sha256:6eeb656fb1a4df791c40c16e22e6107025b6a1ee912e2dbc66d684bafc8ef57c
 pyparsing==2.4.2 \
     --hash=sha256:d9338df12903bbf5d65a0e4e87c2161968b10d2e489652bb47001d82a9b028b4 \
     --hash=sha256:6f98a7b9397e206d78cc01df10131398f1c8b8510a2f4d97d9abd82e1aacdd80
