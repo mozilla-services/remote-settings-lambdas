@@ -72,6 +72,10 @@ def blockpages_generator(*args, **kwargs):
     return run("blockpages_generator", *args, **kwargs)
 
 
+def consistency_checks(*args, **kwargs):
+    return run("consistency_checks", *args, **kwargs)
+
+
 def publish_dafsa(*args, **kwargs):
     return run("publish_dafsa", *args, **kwargs)
 
