@@ -27,9 +27,9 @@ cryptography==2.7 \
 ecdsa==0.13.2 \
     --hash=sha256:20c17e527e75acad8f402290e158a6ac178b91b881f941fc6ea305bfdfb9657c \
     --hash=sha256:5c034ffa23413ac923541ceb3ac14ec15a0d2530690413bff58c12b80e56d884
-kinto-http==10.5.0 \
-    --hash=sha256:a516ef084cafdd7779a7ddd0eec0c98bde466a58c6e6a6ee1792eddd1b6c3481 \
-    --hash=sha256:c025b95f99432bb403a4ca842cb0b68ba5b4f95b54e21f16fc1b3af2c702dd53
+kinto-http==10.6.0 \
+    --hash=sha256:9b5695bb28a3c31531dbe19fb9ea08e66e86cf039b76662261626fc3dfd0be4d \
+    --hash=sha256:d1c000788ad811bb496b8880cf99b4c35c565add5dc8f1180d6ef08772a390b8
 requests==2.22.0 \
     --hash=sha256:9cf5292fcd0f598c671cfc1e0d7d1a7f13bb8085e9a590f48c010551dc6c4b31 \
     --hash=sha256:11e007a8a2aa0323f5a921e9e6a2d7e4e67d9877e85773fba9ba6419025cbeb4
