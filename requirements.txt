@@ -33,9 +33,9 @@ kinto-http==10.6.0 \
 requests==2.22.0 \
     --hash=sha256:9cf5292fcd0f598c671cfc1e0d7d1a7f13bb8085e9a590f48c010551dc6c4b31 \
     --hash=sha256:11e007a8a2aa0323f5a921e9e6a2d7e4e67d9877e85773fba9ba6419025cbeb4
-sentry-sdk==0.12.1 \
-    --hash=sha256:61ac4fe28f8c67f0adf8740da77c84bf787034f9d32c60a77adac4d899a48a50 \
-    --hash=sha256:1c5da96f77307d0afc7811f3adc736c363c52388700e449c6a5310be44c82376
+sentry-sdk==0.12.2 \
+    --hash=sha256:ab16b539c40cc18e3dcfec99d0d3fff16337a050eaf79d4503ef2b73af9a7d9e \
+    --hash=sha256:2529ab6f93914d01bcd80b1b16c15a025902350ab19af2033aa5ff797c1600ad
 python-decouple==3.1 \
     --hash=sha256:1317df14b43efee4337a4aa02914bf004f010cd56d6c4bd894e6474ec8c4fe2d
 backoff==1.8.0 \
