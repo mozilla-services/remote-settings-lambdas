@@ -114,14 +114,7 @@ def validate_signature(event, context, **kwargs):
             signature = {}
 
         try:
-            # 3. Verify the signature with the public key
-            pubkey = signature["public_key"].encode("utf-8")
-            verifier = ecdsa.VerifyingKey.from_pem(pubkey)
-            signature_bytes = base64.urlsafe_b64decode(signature["signature"])
-            verified = verifier.verify(signature_bytes, data, hashfunc=hashlib.sha384)
-            assert verified, "Signature verification failed"
-
-            # 4. Verify that the x5u certificate is valid (ie. that signature was well refreshed)
+            # 3. Verify that the x5u certificate is valid (ie. that signature was well refreshed)
             x5u = signature["x5u"]
             if x5u not in checked_certificates:
                 resp = requests.get(signature["x5u"])
@@ -143,15 +136,17 @@ def validate_signature(event, context, **kwargs):
                 ), "invalid subject name"
                 checked_certificates[x5u] = cert
 
-            # 5. Check that public key matches the certificate one.
+            # 3. Verify the signature with the public key
             cert = checked_certificates[x5u]
             cert_pubkey_pem = cert.public_key().public_bytes(
                 crypto_serialization.Encoding.PEM,
                 crypto_serialization.PublicFormat.SubjectPublicKeyInfo,
             )
-            assert (
-                unpem(cert_pubkey_pem) == pubkey
-            ), "signature public key does not match certificate"
+            pubkey = unpem(cert_pubkey_pem)
+            verifier = ecdsa.VerifyingKey.from_pem(pubkey)
+            signature_bytes = base64.urlsafe_b64decode(signature["signature"])
+            verified = verifier.verify(signature_bytes, data, hashfunc=hashlib.sha384)
+            assert verified, "Signature verification failed"
 
             elapsed_time = time.time() - start_time
             message += f"OK ({elapsed_time:.2f}s)"
