@@ -136,7 +136,7 @@ def validate_signature(event, context, **kwargs):
                 ), "invalid subject name"
                 checked_certificates[x5u] = cert
 
-            # 3. Verify the signature with the public key
+            # 4. Verify the signature with the public key
             cert = checked_certificates[x5u]
             cert_pubkey_pem = cert.public_key().public_bytes(
                 crypto_serialization.Encoding.PEM,
