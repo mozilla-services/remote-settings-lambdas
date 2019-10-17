@@ -1,9 +1,9 @@
 amo2kinto==4.0.1 \
     --hash=sha256:319dac85c5719db28c1946f5d13dd2f4e8ae3783d3034da87da97013310d125d \
     --hash=sha256:955f8c44c33077d27c8e9593f1fdb5826445e212fd5add87788ca4c2a70baeab
-asn1crypto==1.1.0 \
-    --hash=sha256:8f3f9470d4ba7aa53afb00278dc26aac22dc3a0d4ed1335fd772f034e094401e \
-    --hash=sha256:5abe83e773026162e4869f4ac16edf7554f661e8cc0bb6d2be3bc6915456731b
+asn1crypto==1.2.0 \
+    --hash=sha256:7bb1cc02a5620b3d72da4ba070bda2f44f0e61b44dee910a302eddff802b6fb5 \
+    --hash=sha256:87620880a477123e01177a1f73d0f327210b43a3cdbd714efcd2fa49a8d7b384
 certifi==2019.9.11 \
     --hash=sha256:fd7c7c74727ddcf00e9acd26bba8da604ffec95bf1c2144e67aff7a8b50e6cef \
     --hash=sha256:e4f3620cfea4f83eedc95b24abd9cd56f3c4b146dd0177e83a21b4eb49e21e50
