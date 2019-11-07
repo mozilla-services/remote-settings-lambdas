@@ -83,7 +83,7 @@ def test_run_problems(capsys):
 
     bad_rows = run()
     assert bad_rows
-    bad_row, = bad_rows
+    (bad_row,) = bad_rows
     assert bad_row[0] == "foo/bar"
     assert bad_row[1] == 123_456 + 234_567 + 12340 + 123 + 10
     bad_keys = [x[0] for x in bad_row[2]]
