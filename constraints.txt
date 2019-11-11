@@ -164,9 +164,9 @@ packaging==19.2 \
 pip-api==0.0.13 \
     --hash=sha256:56351f42411766e51469d0e70ca0fdbf43a1f9be9e90af355174fe6c86c84a25 \
     --hash=sha256:eb04aeebdbf67ea971cd3bde8d193df397c09fd38fecb1357a7e01463d5d2f00
-pyparsing==2.4.4 \
-    --hash=sha256:61b5ed888beab19ddccab3478910e2076a6b5a0295dffc43021890e136edf764 \
-    --hash=sha256:4acadc9a2b96c19fe00932a38ca63e601180c39a189a696abce1eaab641447e1
+pyparsing==2.4.5 \
+    --hash=sha256:20f995ecd72f2a1f4bf6b072b63b22e2eb457836601e76d6e5dfcd75436acc1f \
+    --hash=sha256:4ca62001be367f01bd3e92ecbb79070272a9d4964dce6a48a82ff0b8bc7e683a
 kinto-signer==5.2.1 \
     --hash=sha256:6f2f65158bb038f9bdac73e8a4bdc4f4086a014d5b78478c641cd11720a335d3 \
     --hash=sha256:a4eb035c1d2b0ce2fdc0edaf8b334f840beeeb5a566514d89606e5505d192c59
