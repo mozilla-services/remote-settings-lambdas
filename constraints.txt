@@ -167,6 +167,6 @@ pip-api==0.0.13 \
 pyparsing==2.4.5 \
     --hash=sha256:20f995ecd72f2a1f4bf6b072b63b22e2eb457836601e76d6e5dfcd75436acc1f \
     --hash=sha256:4ca62001be367f01bd3e92ecbb79070272a9d4964dce6a48a82ff0b8bc7e683a
-kinto-signer==5.2.1 \
-    --hash=sha256:6f2f65158bb038f9bdac73e8a4bdc4f4086a014d5b78478c641cd11720a335d3 \
-    --hash=sha256:a4eb035c1d2b0ce2fdc0edaf8b334f840beeeb5a566514d89606e5505d192c59
+kinto-signer==6.0.0 \
+    --hash=sha256:78a536178329419c341c12bb34e4feb73b874b6f3ccb1ef1592353e463e09785 \
+    --hash=sha256:6fd1c1fbbeb2e2ae130635517ff3e652968ac3827bad8b4fc2dc7122d96784dd
