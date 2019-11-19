@@ -43,6 +43,6 @@ sentry-sdk==0.13.2 \
     --hash=sha256:ff1fa7fb85703ae9414c8b427ee73f8363232767c9cd19158f08f6e4f0b58fc7
 python-decouple==3.3 \
     --hash=sha256:55c546b85b0c47a15a47a4312d451a437f7344a9be3e001660bccd93b637de95
-backoff==1.9.0 \
-    --hash=sha256:3dd7a2da7ffc9d358bf383bbc85a015c4f5b83edfec4673da4ebf24d59602f3f \
-    --hash=sha256:dc19c51cb9d67ec2ae2650d2bcaf5926bc53523b664201dc1db2d2b0a1a41a9d
+backoff==1.9.1 \
+    --hash=sha256:b87511d94fe2fae567f4ab3b5d7fb447979ed002fe21358e6fa988b4a6533958 \
+    --hash=sha256:ff9c478499fac60075fd895cccc954dcfd1c23281af056dec5cc4731c6f5e070
