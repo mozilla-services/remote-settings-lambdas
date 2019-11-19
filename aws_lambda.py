@@ -72,28 +72,12 @@ def blockpages_generator(*args, **kwargs):
     return run("blockpages_generator", *args, **kwargs)
 
 
-def consistency_checks(*args, **kwargs):
-    return run("consistency_checks", *args, **kwargs)
-
-
 def publish_dafsa(*args, **kwargs):
     return run("publish_dafsa", *args, **kwargs)
 
 
 def refresh_signature(*args, **kwargs):
     return run("refresh_signature", *args, **kwargs)
-
-
-def uptake_health(*args, **kwargs):
-    return run("uptake_health", *args, **kwargs)
-
-
-def validate_changes_collection(*args, **kwargs):
-    return run("validate_changes_collection", *args, **kwargs)
-
-
-def validate_signature(*args, **kwargs):
-    return run("validate_signature", *args, **kwargs)
 
 
 def main(*args):
