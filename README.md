@@ -127,6 +127,7 @@ Environment config:
 - ``BACKPORT_RECORDS_DEST_AUTH``: authentication for destination collection (default: same as source)
 - ``BACKPORT_RECORDS_SOURCE_BUCKET``: bucket id to read records from
 - ``BACKPORT_RECORDS_SOURCE_COLLECTION``: collection id to read records from
+- ``BACKPORT_RECORDS_SOURCE_FILTERS``: optional filters when backporting records as JSON format (default: none, eg. ``"{"min_age": 42}"``)
 - ``BACKPORT_RECORDS_DEST_BUCKET``: bucket id to copy records to (default: same as source bucket)
 - ``BACKPORT_RECORDS_DEST_COLLECTION``:collection id to copy records to (default: same as source collection)
 - ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
