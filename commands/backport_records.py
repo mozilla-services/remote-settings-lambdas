@@ -1,4 +1,5 @@
 import os
+import json
 
 from kinto_http import BearerTokenAuth
 
@@ -21,6 +22,10 @@ def backport_records(event, context, **kwargs):
         event.get("backport_records_source_collection")
         or os.environ["BACKPORT_RECORDS_SOURCE_COLLECTION"]
     )
+    source_filters_json = event.get("backport_records_source_filters") or os.getenv(
+        "BACKPORT_RECORDS_SOURCE_FILTERS", ""
+    )
+    source_filters = json.loads(source_filters_json or "{}")
 
     dest_auth = event.get(
         "backport_records_dest_auth",
@@ -61,7 +66,7 @@ def backport_records(event, context, **kwargs):
         print("Records are in sync. Nothing to do.")
         return
 
-    source_records = source_client.get_records()
+    source_records = source_client.get_records(**source_filters)
     dest_records_by_id = {r["id"]: r for r in dest_client.get_records()}
 
     with dest_client.batch() as dest_batch:
