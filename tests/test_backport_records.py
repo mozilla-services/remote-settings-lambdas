@@ -1,12 +1,7 @@
 import json
-import os
-import tempfile
 import unittest
-from unittest import mock
 
-import requests
 import responses
-from kinto_http import Client, KintoException
 
 
 from commands.backport_records import backport_records
@@ -37,8 +32,8 @@ class TestRecordsFilter(unittest.TestCase):
             responses.GET,
             self.server + "/",
             json={
-                "settings": {"batch_max_requests": 10,},
-                "capabilities": {"signer": {"resources": [],}},
+                "settings": {"batch_max_requests": 10},
+                "capabilities": {"signer": {"resources": []}},
             },
         )
         responses.add(responses.HEAD, self.source_records_uri, headers={"ETag": '"42"'})
