@@ -18,6 +18,7 @@ MAKE_DAFSA_PY = "https://hg.mozilla.org/mozilla-central/raw-file/27de3a352a395fd
 PREPARE_TLDS_PY = "https://hg.mozilla.org/mozilla-central/raw-file/822cb68b6ab75c96d7e36aa1f7fffda122d41f0c/netwerk/dns/prepare_tlds.py"  # noqa
 
 BUCKET_ID = os.getenv("BUCKET_ID", "main-workspace")
+BUCKET_ID_PREVIEW = "main-preview"
 COLLECTION_ID = "public-suffix-list"
 RECORD_ID = "tld-dafsa"
 
@@ -40,10 +41,10 @@ def download_resources(directory, *urls):
                 f.write(chunk)
 
 
-def get_stored_hash(client):
+def get_stored_hash(client, bucket=None):
     record = {}
     try:
-        record = client.get_record(id=RECORD_ID)
+        record = client.get_record(id=RECORD_ID, bucket=bucket)
     except KintoException:
         record = {}
     return record.get("data", {}).get("commit-hash")
@@ -105,8 +106,9 @@ def publish_dafsa(event, context):
 
     latest_hash = get_latest_hash(COMMIT_HASH_URL)
     stored_hash = get_stored_hash(client)
+    stored_hash_preview = get_stored_hash(client, bucket=BUCKET_ID_PREVIEW)
 
-    if stored_hash != latest_hash:
+    if stored_hash != latest_hash and stored_hash_preview != latest_hash:
         with tempfile.TemporaryDirectory() as tmp:
             output_binary_path = prepare_dafsa(tmp)
             remote_settings_publish(client, latest_hash, output_binary_path)
