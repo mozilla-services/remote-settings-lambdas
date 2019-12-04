@@ -45,8 +45,10 @@ def get_stored_hash(client, bucket=None):
     record = {}
     try:
         record = client.get_record(id=RECORD_ID, bucket=bucket)
-    except KintoException:
-        record = {}
+    except KintoException as e:
+        if e.response is None or e.response.status_code != 404:
+            raise
+
     return record.get("data", {}).get("commit-hash")
 
 
