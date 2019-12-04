@@ -5,7 +5,7 @@ from unittest import mock
 
 import requests
 import responses
-from kinto_http import Client, KintoException
+from kinto_http import Client
 
 
 from commands.publish_dafsa import (
@@ -19,6 +19,7 @@ from commands.publish_dafsa import (
     MAKE_DAFSA_PY,
     LIST_URL,
     BUCKET_ID,
+    BUCKET_ID_PREVIEW,
     COLLECTION_ID,
     RECORD_ID,
     COMMIT_HASH_URL,
@@ -84,13 +85,11 @@ class TestGetStoredHash(unittest.TestCase):
         self.assertEqual(stored_hash, "fake-commit-hash")
 
     @responses.activate
-    def test_KintoException_raised_when_stored_hash_fetching_failed(self):
+    def test_returns_none_when_no_record_found(self):
         responses.add(
             responses.GET, self.record_uri, json={"error": "not found"}, status=404
         )
-        with self.assertRaises(KintoException) as e:
-            get_stored_hash(self.client)
-            self.assertEqual(e.status_code, 404)
+        self.assertIsNone(get_stored_hash(self.client))
 
 
 class TestPrepareDafsa(unittest.TestCase):
@@ -165,6 +164,9 @@ class TestPublishDafsa(unittest.TestCase):
         self.record_uri = self.event.get("server") + client.get_endpoint(
             "record", id=RECORD_ID, bucket=BUCKET_ID, collection=COLLECTION_ID
         )
+        self.record_uri_preview = self.event.get("server") + client.get_endpoint(
+            "record", id=RECORD_ID, bucket=BUCKET_ID_PREVIEW, collection=COLLECTION_ID
+        )
 
         mocked = mock.patch("commands.publish_dafsa.prepare_dafsa")
         self.addCleanup(mocked.stop)
@@ -191,6 +193,27 @@ class TestPublishDafsa(unittest.TestCase):
         self.assertFalse(self.mocked_publish.called)
 
     @responses.activate
+    def test_prepare_and_publish_not_called_when_pending_review(self):
+        responses.add(
+            responses.GET, COMMIT_HASH_URL, json=[{"sha": "fake-commit-hash"}]
+        )
+        responses.add(
+            responses.GET,
+            self.record_uri,
+            json={"data": {"commit-hash": "different-fake-commit-hash"}},
+        )
+        responses.add(
+            responses.GET,
+            self.record_uri_preview,
+            json={"data": {"commit-hash": "fake-commit-hash"}},
+        )
+
+        publish_dafsa(self.event, context=None)
+
+        self.assertFalse(self.mocked_prepare.called)
+        self.assertFalse(self.mocked_publish.called)
+
+    @responses.activate
     def test_prepare_and_publish_are_called_when_hashes_do_not_match(self):
         responses.add(
             responses.GET, COMMIT_HASH_URL, json=[{"sha": "fake-commit-hash"}]
@@ -198,6 +221,11 @@ class TestPublishDafsa(unittest.TestCase):
         responses.add(
             responses.GET,
             self.record_uri,
+            json={"data": {"commit-hash": "different-fake-commit-hash"}},
+        )
+        responses.add(
+            responses.GET,
+            self.record_uri_preview,
             json={"data": {"commit-hash": "different-fake-commit-hash"}},
         )
 
