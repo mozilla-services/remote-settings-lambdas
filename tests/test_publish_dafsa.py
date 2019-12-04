@@ -5,7 +5,7 @@ from unittest import mock
 
 import requests
 import responses
-from kinto_http import Client, KintoException
+from kinto_http import Client
 
 
 from commands.publish_dafsa import (
