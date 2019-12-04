@@ -106,9 +106,13 @@ def publish_dafsa(event, context):
 
     latest_hash = get_latest_hash(COMMIT_HASH_URL)
     stored_hash = get_stored_hash(client)
-    stored_hash_preview = get_stored_hash(client, bucket=BUCKET_ID_PREVIEW)
 
-    if stored_hash != latest_hash and stored_hash_preview != latest_hash:
+    already_published = stored_hash == latest_hash
+    if not already_published:
+        stored_hash_preview = get_stored_hash(client, bucket=BUCKET_ID_PREVIEW)
+        already_published = stored_hash_preview == latest_hash
+
+    if not already_published:
         with tempfile.TemporaryDirectory() as tmp:
             output_binary_path = prepare_dafsa(tmp)
             remote_settings_publish(client, latest_hash, output_binary_path)
