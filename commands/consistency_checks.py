@@ -4,15 +4,7 @@ import os
 
 from kinto_http import BearerTokenAuth
 
-from . import PARALLEL_REQUESTS, KintoClient as Client
-
-
-def records_equal(a, b):
-    """Compare records, ignoring timestamps."""
-    ignored_fields = ("last_modified", "schema")
-    ra = {k: v for k, v in a.items() if k not in ignored_fields}
-    rb = {k: v for k, v in b.items() if k not in ignored_fields}
-    return ra == rb
+from . import PARALLEL_REQUESTS, KintoClient as Client, records_equal
 
 
 def compare_collections(a, b):
