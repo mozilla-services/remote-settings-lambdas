@@ -3,7 +3,7 @@ import json
 
 from kinto_http import BearerTokenAuth
 
-from . import KintoClient as Client
+from . import KintoClient as Client, records_equal
 
 
 def backport_records(event, context, **kwargs):
@@ -60,25 +60,31 @@ def backport_records(event, context, **kwargs):
         else BearerTokenAuth(dest_auth),
     )
 
-    source_timestamp = source_client.get_records_timestamp()
-    dest_timestamp = dest_client.get_records_timestamp()
-    if source_timestamp <= dest_timestamp:
-        print("Records are in sync. Nothing to do.")
-        return
-
     source_records = source_client.get_records(**source_filters)
     dest_records_by_id = {r["id"]: r for r in dest_client.get_records()}
 
+    # Create or update the destination records.
+    to_create = []
+    to_update = []
+    for r in source_records:
+        dest_record = dest_records_by_id.pop(r["id"], None)
+        if dest_record is None:
+            to_create.append(r)
+        elif not records_equal(r, dest_record):
+            to_update.append(r)
+    # Delete the records missing from source.
+    to_delete = dest_records_by_id.values()
+
+    if (len(to_create) + len(to_update) + len(to_delete)) == 0:
+        print("Records are in sync. Nothing to do.")
+        return
+
     with dest_client.batch() as dest_batch:
-        # Create or update the destination records.
-        for r in source_records:
-            dest_record = dest_records_by_id.pop(r["id"], None)
-            if dest_record is None:
-                dest_batch.create_record(data=r)
-            elif r["last_modified"] > dest_record["last_modified"]:
-                dest_batch.update_record(data=r)
-        # Delete the records missing from source.
-        for r in dest_records_by_id.values():
+        for r in to_create:
+            dest_batch.create_record(data=r)
+        for r in to_update:
+            dest_batch.update_record(data=r)
+        for r in to_delete:
             dest_batch.delete_record(id=r["id"])
 
     ops_count = len(dest_batch.results())
