@@ -4,9 +4,9 @@ amo2kinto==4.0.1 \
 botocore==1.15.11 \
     --hash=sha256:35d553b8975a3810010fabb885e42d1bbc97bdae52c873f7640a2dd87772c455 \
     --hash=sha256:87a53301ee9e32e776d2d805c121753091fbddc3457dfdb8d6bdf7dbd945295a
-boto3==1.12.9 \
-    --hash=sha256:4d7fb8028bd6cc431b2381f7ddc019a2376bed742ae480339b1bc8b347b3e402 \
-    --hash=sha256:acd8c19af1f82cfa011baed100f1659c1dc22daaeeec8d6db0567a4a1bfa103f
+boto3==1.12.11 \
+    --hash=sha256:b21d781a7fb0bfa50771362c3495e30dc3cddd7e91d65c21bcb9fe37acf36b1e \
+    --hash=sha256:41cb779ff393a9a0a3e9dccce7689ec10c383c18deb5c69059181db8c0ccecc3
 cryptography==2.8 \
     --hash=sha256:fb81c17e0ebe3358486cd8cc3ad78adbae58af12fc2bf2bc0bb84e8090fa5ce8 \
     --hash=sha256:44ff04138935882fef7c686878e1c8fd80a723161ad6a98da31e14b7553170c2 \
