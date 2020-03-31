@@ -76,7 +76,12 @@ def backport_records(event, context, **kwargs):
             if dest_record is None:
                 dest_batch.create_record(data=r)
             elif r["last_modified"] > dest_record["last_modified"]:
-                dest_batch.update_record(data=r)
+                # Let the server assign a new timestamp.
+                del r["last_modified"]
+                # Add some concurrency control headers (make sure the
+                # destination record wasn't changed since we read it).
+                if_match = dest_record["last_modified"]
+                dest_batch.update_record(data=r, if_match=if_match)
         # Delete the records missing from source.
         for r in dest_records_by_id.values():
             dest_batch.delete_record(id=r["id"])
