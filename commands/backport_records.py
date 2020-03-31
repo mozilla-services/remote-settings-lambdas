@@ -83,7 +83,12 @@ def backport_records(event, context, **kwargs):
         for r in to_create:
             dest_batch.create_record(data=r)
         for r in to_update:
-            dest_batch.update_record(data=r)
+            # Let the server assign a new timestamp.
+            del r["last_modified"]
+            # Add some concurrency control headers (make sure the
+            # destination record wasn't changed since we read it).
+            if_match = dest_record["last_modified"]
+            dest_batch.update_record(data=r, if_match=if_match)
         for r in to_delete:
             dest_batch.delete_record(id=r["id"])
 
