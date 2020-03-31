@@ -102,7 +102,7 @@ class TestRecordsFilter(unittest.TestCase):
         responses.add(
             responses.GET,
             self.source_records_uri,
-            json={"data": [{"id": "a", "age": 22, "last_modified": 2},]},
+            json={"data": [{"id": "a", "age": 22, "last_modified": 2}]},
         )
         responses.add(responses.HEAD, self.dest_records_uri, headers={"ETag": '"41"'})
         responses.add(
