@@ -54,3 +54,11 @@ class KintoClient(kinto_http.Client):
     @retry_timeout
     def get_records_timestamp(self, *args, **kwargs):
         return super().get_records_timestamp(*args, **kwargs)
+
+
+def records_equal(a, b):
+    """Compare records, ignoring timestamps."""
+    ignored_fields = ("last_modified", "schema")
+    ra = {k: v for k, v in a.items() if k not in ignored_fields}
+    rb = {k: v for k, v in b.items() if k not in ignored_fields}
+    return ra == rb

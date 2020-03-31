@@ -36,7 +36,6 @@ class TestRecordsFilter(unittest.TestCase):
                 "capabilities": {"signer": {"resources": []}},
             },
         )
-        responses.add(responses.HEAD, self.source_records_uri, headers={"ETag": '"42"'})
         responses.add(
             responses.GET,
             self.source_records_uri,
@@ -47,7 +46,6 @@ class TestRecordsFilter(unittest.TestCase):
                 ]
             },
         )
-        responses.add(responses.HEAD, self.dest_records_uri, headers={"ETag": '"41"'})
         responses.add(
             responses.GET,
             self.dest_records_uri,
@@ -68,17 +66,14 @@ class TestRecordsFilter(unittest.TestCase):
             context=None,
         )
 
-        assert responses.calls[0].request.method == "HEAD"
-        assert responses.calls[1].request.method == "HEAD"
+        assert responses.calls[0].request.method == "GET"
+        assert responses.calls[0].request.url.endswith("?min_age=20")
 
+        assert responses.calls[1].request.method == "GET"
         assert responses.calls[2].request.method == "GET"
-        assert responses.calls[2].request.url.endswith("?min_age=20")
 
-        assert responses.calls[3].request.method == "GET"
-        assert responses.calls[4].request.method == "GET"
-
-        assert responses.calls[5].request.method == "POST"
-        posted_records = json.loads(responses.calls[5].request.body)
+        assert responses.calls[3].request.method == "POST"
+        posted_records = json.loads(responses.calls[3].request.body)
         assert posted_records["requests"] == [
             {
                 "body": {"data": {"age": 30, "id": "b", "last_modified": 10}},
@@ -124,8 +119,8 @@ class TestRecordsFilter(unittest.TestCase):
             context=None,
         )
 
-        assert responses.calls[5].request.method == "POST"
-        posted_records = json.loads(responses.calls[5].request.body)
+        assert responses.calls[3].request.method == "POST"
+        posted_records = json.loads(responses.calls[3].request.body)
         assert posted_records["requests"] == [
             {
                 "body": {"data": {"age": 22, "id": "a"}},
