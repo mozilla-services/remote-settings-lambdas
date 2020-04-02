@@ -2,6 +2,7 @@ import os
 import json
 
 from kinto_http import BearerTokenAuth
+from decouple import config
 
 from . import KintoClient as Client, records_equal
 
@@ -38,6 +39,9 @@ def backport_records(event, context, **kwargs):
     dest_collection = event.get(
         "backport_records_dest_collection",
         os.getenv("BACKPORT_RECORDS_DEST_COLLECTION", source_collection),
+    )
+    safe_headers = event.get(
+        "safe_headers", config("SAFE_HEADERS", default=True, cast=bool)
     )
 
     if source_bucket == dest_bucket and source_collection == dest_collection:
@@ -87,7 +91,7 @@ def backport_records(event, context, **kwargs):
             del r["last_modified"]
             # Add some concurrency control headers (make sure the
             # destination record wasn't changed since we read it).
-            if_match = dest_record["last_modified"]
+            if_match = dest_record["last_modified"] if safe_headers else None
             dest_batch.update_record(data=r, if_match=if_match)
         for r in to_delete:
             dest_batch.delete_record(id=r["id"])
