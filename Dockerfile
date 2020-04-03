@@ -16,7 +16,9 @@ ADD *.py /lambda/
 RUN mkdir /lambda/commands
 ADD commands/*.py /lambda/commands/
 RUN find /lambda -type d | xargs chmod ugo+rx && \
-    find /lambda -type f | xargs chmod ugo+r
+    find /lambda -type f | xargs chmod ugo+r && \
+    # Strip some botocore/data
+    rm -rf /lambda/botocore/data/ec2 /lambda/botocore/data/cloudfront /lambda/botocore/data/rds /lambda/botocore/data/sagemaker /lambda/botocore/data/sagemaker /lambda/botocore/data/elasticache /lambda/botocore/data/pinpoint
 
 # compile the lot.
 RUN python -m compileall -q /lambda
