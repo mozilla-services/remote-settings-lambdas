@@ -17,6 +17,8 @@ RUN mkdir /lambda/commands
 ADD commands/*.py /lambda/commands/
 RUN find /lambda -type d | xargs chmod ugo+rx && \
     find /lambda -type f | xargs chmod ugo+r && \
+    # Strip unused lxml from amo2kinto.exporter
+    rm -rf /lambda/lxml && \
     # Strip some botocore/data
     rm -rf /lambda/botocore/data/ec2 /lambda/botocore/data/cloudfront /lambda/botocore/data/rds /lambda/botocore/data/sagemaker /lambda/botocore/data/sagemaker /lambda/botocore/data/elasticache /lambda/botocore/data/pinpoint
 
