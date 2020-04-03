@@ -65,6 +65,7 @@ Environment config:
 - ``BACKPORT_RECORDS_DEST_COLLECTION``:collection id to copy records to (default: same as source collection)
 - ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
 - ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
+- ``SAFE_HEADERS``: Add concurrency control headers to update requests (default: ``true``)
 
 Example:
 
