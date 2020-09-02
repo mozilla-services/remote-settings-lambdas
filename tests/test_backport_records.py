@@ -7,7 +7,7 @@ import responses
 from commands.backport_records import backport_records
 
 
-class TestRecordsFilter(unittest.TestCase):
+class TestRecordsBackport(unittest.TestCase):
     server = "https://fake-server.net/v1"
     auth = ("foo", "bar")
     source_bid = "main"
@@ -129,3 +129,147 @@ class TestRecordsFilter(unittest.TestCase):
                 "path": "/buckets/main-workspace/collections/other/records/a",
             }
         ]
+
+    @responses.activate
+    def test_nothing_to_do(self):
+        responses.add(
+            responses.GET,
+            self.source_records_uri,
+            json={
+                "data": [
+                    {"id": "a", "age": 22, "last_modified": 1},
+                    {"id": "b", "age": 30, "last_modified": 10},
+                ]
+            },
+        )
+        responses.add(
+            responses.GET,
+            self.dest_collection_uri,
+            json={
+                "data": {
+                    "status": "signed",
+                },
+            },
+        )
+        responses.add(
+            responses.GET,
+            self.dest_records_uri,
+            json={
+                "data": [
+                    {"id": "a", "age": 22, "last_modified": 20},
+                    {"id": "b", "age": 30, "last_modified": 30},
+                ]
+            },
+        )
+
+        backport_records(
+            event={
+                "server": self.server,
+                "backport_records_source_auth": self.auth,
+                "backport_records_source_bucket": self.source_bid,
+                "backport_records_source_collection": self.source_cid,
+                "backport_records_dest_bucket": self.dest_bid,
+                "backport_records_dest_collection": self.dest_cid,
+            },
+            context=None,
+        )
+
+        assert len(responses.calls) == 3
+        assert responses.calls[0].request.method == "GET"
+        assert responses.calls[0].request.url.endswith(self.source_records_uri)
+        assert responses.calls[1].request.method == "GET"
+        assert responses.calls[1].request.url.endswith(self.dest_records_uri)
+        # Check if the destination collection is signed.
+        assert responses.calls[2].request.method == "GET"
+        assert responses.calls[2].request.url.endswith(self.dest_collection_uri)
+
+    @responses.activate
+    def test_pending_changes(self):
+        responses.add(
+            responses.GET,
+            self.server + "/",
+            json={
+                "settings": {"batch_max_requests": 10},
+                "capabilities": {
+                    "signer": {
+                        "to_review_enabled": False,
+                        "group_check_enabled": False,
+                        "resources": [
+                            {
+                                "source": {
+                                    "bucket": self.dest_bid,
+                                    "collection": self.dest_cid,
+                                }
+                            }
+                        ],
+                    }
+                },
+            },
+        )
+        responses.add(
+            responses.GET,
+            self.source_records_uri,
+            json={
+                "data": [
+                    {"id": "a", "age": 22, "last_modified": 1},
+                    {"id": "b", "age": 30, "last_modified": 10},
+                ]
+            },
+        )
+        responses.add(
+            responses.GET,
+            self.dest_collection_uri,
+            json={
+                "data": {"status": "work-in-progress"},
+            },
+        )
+        responses.add(
+            responses.PATCH,
+            self.dest_collection_uri,
+            json={
+                "data": {"status": "to-sign"},
+            },
+        )
+        responses.add(
+            responses.GET,
+            self.dest_records_uri,
+            json={
+                "data": [
+                    {"id": "a", "age": 22, "last_modified": 20},
+                    {"id": "b", "age": 30, "last_modified": 30},
+                ]
+            },
+        )
+
+        backport_records(
+            event={
+                "server": self.server,
+                "backport_records_source_auth": self.auth,
+                "backport_records_source_bucket": self.source_bid,
+                "backport_records_source_collection": self.source_cid,
+                "backport_records_dest_bucket": self.dest_bid,
+                "backport_records_dest_collection": self.dest_cid,
+            },
+            context=None,
+        )
+
+        assert len(responses.calls) == 6
+        print([(c.request.method, c.request.url) for c in responses.calls])
+        assert responses.calls[0].request.method == "GET"
+        assert responses.calls[0].request.url.endswith(self.source_records_uri)
+        assert responses.calls[1].request.method == "GET"
+        assert responses.calls[1].request.url.endswith(self.dest_records_uri)
+        # Check if the destination collection is signed.
+        assert responses.calls[2].request.method == "GET"
+        assert responses.calls[2].request.url.endswith(self.dest_collection_uri)
+        # Fetch server info for batch requests size.
+        assert responses.calls[3].request.method == "GET"
+        assert responses.calls[3].request.url == self.server + "/"
+        # Check if the destination has review enabled.
+        assert responses.calls[4].request.method == "GET"
+        assert responses.calls[4].request.url == self.server + "/"
+        # Request signing.
+        assert responses.calls[5].request.method == "PATCH"
+        assert responses.calls[5].request.url.endswith(self.dest_collection_uri)
+        sign_request = json.loads(responses.calls[5].request.body)
+        assert sign_request == {"data": {"status": "to-sign"}}

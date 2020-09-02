@@ -8,8 +8,7 @@ from . import KintoClient as Client, records_equal
 
 
 def backport_records(event, context, **kwargs):
-    """Backport records creations, updates and deletions from one collection to another.
-    """
+    """Backport records creations, updates and deletions from one collection to another."""
     server_url = event["server"]
     source_auth = (
         event.get("backport_records_source_auth")
@@ -79,7 +78,13 @@ def backport_records(event, context, **kwargs):
     # Delete the records missing from source.
     to_delete = dest_records_by_id.values()
 
-    if (len(to_create) + len(to_update) + len(to_delete)) == 0:
+    is_behind = (len(to_create) + len(to_update) + len(to_delete)) > 0
+    has_pending_changes = is_behind
+    if not is_behind:
+        data = dest_client.get_collection()["data"]
+        has_pending_changes = data.get("status") != "signed"
+
+    if not (is_behind or has_pending_changes):
         print("Records are in sync. Nothing to do.")
         return
 
