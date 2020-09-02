@@ -18,8 +18,7 @@ if SENTRY_DSN:
 
 
 def help_(**kwargs):
-    """Show this help.
-    """
+    """Show this help."""
 
     def white_bold(s):
         return f"\033[1m\x1B[37m{s}\033[0;0m"

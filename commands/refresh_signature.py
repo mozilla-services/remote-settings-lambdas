@@ -36,8 +36,7 @@ def get_signed_source(server_info, change):
 
 
 def refresh_signature(event, context, **kwargs):
-    """Refresh the signatures of each collection.
-    """
+    """Refresh the signatures of each collection."""
     server_url = event["server"]
     auth = event.get("refresh_signature_auth") or os.getenv("REFRESH_SIGNATURE_AUTH")
     if auth:
