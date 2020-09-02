@@ -14,8 +14,7 @@ BLOCKPAGES_ARGS = ["server", "bucket", "addons-collection", "plugins-collection"
 
 
 def blockpages_generator(event, context, **kwargs):
-    """Generate the blocklist HTML pages and upload them to S3.
-    """
+    """Generate the blocklist HTML pages and upload them to S3."""
     args = []
     kwargs = {}
 

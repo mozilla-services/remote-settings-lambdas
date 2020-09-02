@@ -8,8 +8,7 @@ from . import KintoClient as Client, records_equal
 
 
 def backport_records(event, context, **kwargs):
-    """Backport records creations, updates and deletions from one collection to another.
-    """
+    """Backport records creations, updates and deletions from one collection to another."""
     server_url = event["server"]
     source_auth = (
         event.get("backport_records_source_auth")

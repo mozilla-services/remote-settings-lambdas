@@ -94,8 +94,7 @@ def remote_settings_publish(client, latest_hash, binary_path):
 
 
 def publish_dafsa(event, context):
-    """Publish the Public Suffix List from https://publicsuffix.org
-    """
+    """Publish the Public Suffix List from https://publicsuffix.org"""
     server = event.get("server") or os.getenv("SERVER")
     auth = event.get("auth") or os.getenv("AUTH")
     # Auth format assumed to be "Username:Password"
