@@ -81,6 +81,10 @@ def backport_records(event, context, **kwargs):
     is_behind = (len(to_create) + len(to_update) + len(to_delete)) > 0
     has_pending_changes = is_behind
     if not is_behind:
+        # When this lambda is ran with a signed collection as
+        # its destination, the destination collection is in the
+        # workspace bucket, and will have a status field among
+        # its metadata.
         data = dest_client.get_collection()["data"]
         has_pending_changes = data.get("status") != "signed"
 

@@ -254,7 +254,6 @@ class TestRecordsBackport(unittest.TestCase):
         )
 
         assert len(responses.calls) == 6
-        print([(c.request.method, c.request.url) for c in responses.calls])
         assert responses.calls[0].request.method == "GET"
         assert responses.calls[0].request.url.endswith(self.source_records_uri)
         assert responses.calls[1].request.method == "GET"
