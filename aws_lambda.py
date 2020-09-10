@@ -79,6 +79,10 @@ def refresh_signature(*args, **kwargs):
     return run("refresh_signature", *args, **kwargs)
 
 
+def sync_megaphone(*args, **kwargs):
+    return run("sync_megaphone", *args, **kwargs)
+
+
 def main(*args):
     # Run the function specified in CLI arg.
     #
