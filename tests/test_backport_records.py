@@ -110,6 +110,7 @@ class TestRecordsBackport(unittest.TestCase):
         backport_records(
             event={
                 "server": self.server,
+                "safe_headers": True,
                 "backport_records_source_auth": self.auth,
                 "backport_records_source_bucket": self.source_bid,
                 "backport_records_source_collection": self.source_cid,

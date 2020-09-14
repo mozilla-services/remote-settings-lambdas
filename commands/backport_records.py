@@ -40,7 +40,7 @@ def backport_records(event, context, **kwargs):
         os.getenv("BACKPORT_RECORDS_DEST_COLLECTION", source_collection),
     )
     safe_headers = event.get(
-        "safe_headers", config("SAFE_HEADERS", default=True, cast=bool)
+        "safe_headers", config("SAFE_HEADERS", default=False, cast=bool)
     )
 
     if source_bucket == dest_bucket and source_collection == dest_collection:
