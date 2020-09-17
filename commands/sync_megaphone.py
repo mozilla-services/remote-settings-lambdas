@@ -79,7 +79,7 @@ def sync_megaphone(event, context):
     megaphone_timestamp = megaphone_client.get_version()
     logger.info(f"Remote Settings: {rs_timestamp}; Megaphone: {megaphone_timestamp}")
 
-    if rs_timestamp == megaphone_timestamp:
+    if int(rs_timestamp) <= int(megaphone_timestamp):
         logger.info("Timestamps are in sync. Nothing to do.")
         return
 
