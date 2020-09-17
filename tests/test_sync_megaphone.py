@@ -99,6 +99,9 @@ class TestSyncMegaphone(unittest.TestCase):
         assert len(responses.calls) == 2
         assert responses.calls[1].request.method == "PUT"
         assert responses.calls[1].request.body == "10"
+        assert (
+            responses.calls[1].request.headers["authorization"] == "Bearer bearer-token"
+        )
 
     def test_get_push_timestamp(self):
         class FakeConnection:
