@@ -48,7 +48,7 @@ class Megaphone:
         resp.raise_for_status()
         broadcasts = resp.json()
         etag = broadcasts["broadcasts"][self.broadcaster_id]
-        return etag[1:-1]  # strip quotes.
+        return etag.strip('"')
 
 
 def get_remotesettings_timestamp(uri):
