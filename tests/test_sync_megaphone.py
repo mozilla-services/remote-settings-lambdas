@@ -9,7 +9,8 @@ from commands.sync_megaphone import sync_megaphone
 class TestSyncMegaphone(unittest.TestCase):
     server = "https://fake-server.net/v1"
     megaphone_url = "https://megaphone.tld/v1"
-    megaphone_auth = "bearer-token"
+    megaphone_reader_auth = "reader-token"
+    megaphone_broadcaster_auth = "broadcaster-token"
     broadcast_id = "remote-settings/monitor_changes"
 
     def setUp(self):
@@ -20,6 +21,15 @@ class TestSyncMegaphone(unittest.TestCase):
         self.megaphone_broadcast_uri = (
             f"{self.megaphone_url}/broadcasts/{self.broadcast_id}"
         )
+        self.event = {
+            k: getattr(self, k)
+            for k in [
+                "server",
+                "megaphone_url",
+                "megaphone_reader_auth",
+                "megaphone_broadcaster_auth",
+            ]
+        }
 
     @responses.activate
     def test_does_nothing_if_up_to_date(self):
@@ -56,11 +66,7 @@ class TestSyncMegaphone(unittest.TestCase):
         )
 
         sync_megaphone(
-            event={
-                "server": self.server,
-                "megaphone_url": self.megaphone_url,
-                "megaphone_auth": self.megaphone_auth,
-            },
+            event=self.event,
             context=None,
         )
 
@@ -97,11 +103,7 @@ class TestSyncMegaphone(unittest.TestCase):
         )
 
         sync_megaphone(
-            event={
-                "server": self.server,
-                "megaphone_url": self.megaphone_url,
-                "megaphone_auth": self.megaphone_auth,
-            },
+            event=self.event,
             context=None,
         )
 
@@ -143,11 +145,7 @@ class TestSyncMegaphone(unittest.TestCase):
         )
 
         sync_megaphone(
-            event={
-                "server": self.server,
-                "megaphone_url": self.megaphone_url,
-                "megaphone_auth": self.megaphone_auth,
-            },
+            event=self.event,
             context=None,
         )
 
@@ -156,5 +154,9 @@ class TestSyncMegaphone(unittest.TestCase):
         assert responses.calls[1].request.method == "GET"
         assert responses.calls[2].request.body == '"10"'
         assert (
-            responses.calls[2].request.headers["authorization"] == "Bearer bearer-token"
+            responses.calls[1].request.headers["authorization"] == "Bearer reader-token"
+        )
+        assert (
+            responses.calls[2].request.headers["authorization"]
+            == "Bearer broadcaster-token"
         )
