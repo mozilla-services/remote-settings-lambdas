@@ -27,14 +27,15 @@ class BearerAuth(requests.auth.AuthBase):
 
 
 class Megaphone:
-    def __init__(self, url, api_key, broadcaster_id):
+    def __init__(self, url, reader_auth, broadcaster_auth, broadcaster_id):
         self.url = url.rstrip("/")
-        self.auth = BearerAuth(api_key)
+        self.reader_auth = BearerAuth(reader_auth)
+        self.broadcaster_auth = BearerAuth(broadcaster_auth)
         self.broadcaster_id = broadcaster_id
 
     def send_version(self, version):
         url = f"{self.url}/broadcasts/{self.broadcaster_id}"
-        resp = requests.put(url, auth=self.auth, data=version)
+        resp = requests.put(url, auth=self.broadcaster_auth, data=version)
         resp.raise_for_status()
         logger.info(
             "Sent version {} to megaphone. Response was {}".format(
@@ -44,7 +45,7 @@ class Megaphone:
 
     def get_version(self):
         url = f"{self.url}/broadcasts"
-        resp = requests.get(url, auth=self.auth)
+        resp = requests.get(url, auth=self.reader_auth)
         resp.raise_for_status()
         broadcasts = resp.json()
         etag = broadcasts["broadcasts"][self.broadcaster_id]
@@ -68,14 +69,21 @@ def sync_megaphone(event, context):
     rs_timestamp = get_remotesettings_timestamp(rs_server)
 
     megaphone_url = event.get("megaphone_url") or os.getenv("MEGAPHONE_URL")
-    megaphone_auth = event.get("megaphone_auth") or os.getenv("MEGAPHONE_AUTH")
+    megaphone_reader_auth = event.get("megaphone_reader_auth") or os.getenv(
+        "MEGAPHONE_READER_AUTH"
+    )
+    megaphone_broadcaster_auth = event.get("megaphone_broadcaster_auth") or os.getenv(
+        "MEGAPHONE_BROADCASTER_AUTH"
+    )
     broadcaster_id = event.get("broadcaster_id") or os.getenv(
         "BROADCASTER_ID", BROADCASTER_ID
     )
     channel_id = event.get("channel_id") or os.getenv("CHANNEL_ID", CHANNEL_ID)
     broadcast_id = f"{broadcaster_id}/{channel_id}"
 
-    megaphone_client = Megaphone(megaphone_url, megaphone_auth, broadcast_id)
+    megaphone_client = Megaphone(
+        megaphone_url, megaphone_reader_auth, megaphone_broadcaster_auth, broadcast_id
+    )
     megaphone_timestamp = megaphone_client.get_version()
     logger.info(f"Remote Settings: {rs_timestamp}; Megaphone: {megaphone_timestamp}")
 

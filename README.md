@@ -119,14 +119,15 @@ Environment config:
 
 - ``SERVER``: Remote Settings server URL (default: ``http://localhost:8888/v1``)
 - ``MEGAPHONE_URL``: Megaphone service URL
-- ``MEGAPHONE_AUTH``: Megaphone bearer token
+- ``MEGAPHONE_READER_AUTH``: Bearer token for Megaphone read access
+- ``MEGAPHONE_BROADCASTER_AUTH``: Bearer token for Megaphone broadcaster access
 - ``BROADCASTER_ID``: Push broadcaster ID (default: ``remote-settings``)
 - ``CHANNEL_ID``: Push channel ID (default: ``monitor_changes``)
 
 Example:
 
 ```
-$ SERVER=https://settings.prod.mozaws.net/v1 MEGAPHONE_URL="https://push.services.mozilla.com/v1" MEGAPHONE_AUTH="a-b-c" python aws_lambda.py sync_megaphone
+$ SERVER=https://settings.prod.mozaws.net/v1 MEGAPHONE_URL="https://push.services.mozilla.com/v1" MEGAPHONE_READER_AUTH="a-b-c" MEGAPHONE_BROADCASTER_AUTH="d-e-f" python aws_lambda.py sync_megaphone
 ```
 
 
