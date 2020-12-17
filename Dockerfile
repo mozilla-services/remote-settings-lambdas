@@ -7,7 +7,6 @@ WORKDIR /lambda
 # serialization, install it with ``--no-deps``.
 ADD requirements.txt constraints.txt /tmp/
 RUN pip install --disable-pip-version-check --quiet --target /lambda -r /tmp/requirements.txt -c /tmp/constraints.txt && \
-    pip install --disable-pip-version-check --quiet --target /lambda --no-deps kinto-signer -c /tmp/constraints.txt && \
     find /lambda -type d | xargs chmod ugo+rx && \
     find /lambda -type f | xargs chmod ugo+r
 
