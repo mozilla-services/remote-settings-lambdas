@@ -37,17 +37,6 @@ workflows:
   version: 2
   main:
     jobs:
-      - lint:
-          filters:
-            tags:
-              only: /.*/
-
-      - python-tests:
-          filters:
-            tags:
-              only: /.*/
-
-      - archive-build:
-          filters:
-            tags:
-              only: /.*/
+      - lint
+      - python-tests
+      - archive-build
