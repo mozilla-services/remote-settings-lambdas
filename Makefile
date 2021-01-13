@@ -14,7 +14,7 @@ $(INSTALL_STAMP): requirements.txt constraints.txt
 lint: $(INSTALL_STAMP)
 	$(VENV)/bin/therapist run --use-tracked-files .
 
-test:
+test: $(INSTALL_STAMP)
 	PYTHONPATH=. $(VENV)/bin/pytest
 
 build:
