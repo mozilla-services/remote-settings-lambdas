@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from kinto_http import KintoException, BearerTokenAuth
+from kinto_http import BearerTokenAuth, KintoException
 
 from . import KintoClient as Client
 

@@ -2,7 +2,6 @@ import unittest
 
 import responses
 
-
 from commands.sync_megaphone import sync_megaphone
 
 
