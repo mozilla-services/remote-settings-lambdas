@@ -1,17 +1,21 @@
+VENV := $(shell echo $${VIRTUAL_ENV-.venv})
+INSTALL_STAMP := $(VENV)/.install.stamp
+
 clean:
 	rm -fr .venv lambda.zip
 
-virtualenv:
-	virtualenv .venv --python=python3.7
-	.venv/bin/pip install -r requirements.txt -c constraints.txt
-	.venv/bin/pip install --no-deps kinto-signer -c constraints.txt
-	.venv/bin/pip install therapist pytest
+$(INSTALL_STAMP): requirements.txt constraints.txt
+	virtualenv $(VENV) --python=python3
+	$(VENV)/bin/pip install -r requirements.txt -c constraints.txt
+	$(VENV)/bin/pip install --no-deps kinto-signer -c constraints.txt
+	$(VENV)/bin/pip install therapist pytest
+	touch $(INSTALL_STAMP)
 
-lint:
-	therapist run --use-tracked-files .
+lint: $(INSTALL_STAMP)
+	$(VENV)/bin/therapist run --use-tracked-files .
 
 test:
-	PYTHONPATH=. pytest
+	PYTHONPATH=. $(VENV)/bin/pytest
 
 build:
 	docker build -t remote-settings-lambdas .
