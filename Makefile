@@ -1,16 +1,27 @@
+VENV := $(shell echo $${VIRTUAL_ENV-.venv})
+INSTALL_STAMP := $(VENV)/.install.stamp
+
 clean:
 	rm -fr .venv lambda.zip
 
-virtualenv:
-	virtualenv .venv --python=python3.7
-	.venv/bin/pip install -r requirements.txt -c constraints.txt
-	.venv/bin/pip install --no-deps kinto-signer -c constraints.txt
+$(INSTALL_STAMP): requirements.txt constraints.txt dev.txt
+	virtualenv $(VENV) --python=python3
+	$(VENV)/bin/python -m pip install --upgrade pip
+	$(VENV)/bin/pip install --use-deprecated=legacy-resolver -r requirements.txt -c constraints.txt
+	$(VENV)/bin/pip install -r dev.txt
+	touch $(INSTALL_STAMP)
 
-lint:
-	therapist run --use-tracked-files .
+format: $(INSTALL_STAMP)
+	$(VENV)/bin/isort --profile=black --lines-after-imports=2 commands tests --virtual-env=$(VENV)
+	$(VENV)/bin/black commands tests
 
-test:
-	PYTHONPATH=. pytest
+lint: $(INSTALL_STAMP)
+	$(VENV)/bin/isort --profile=black --lines-after-imports=2 --check-only commands tests --virtual-env=$(VENV)
+	$(VENV)/bin/black --check commands tests --diff
+	$(VENV)/bin/flake8 --ignore=W503,E501 commands tests
+
+test: $(INSTALL_STAMP)
+	PYTHONPATH=. $(VENV)/bin/pytest
 
 build:
 	docker build -t remote-settings-lambdas .

@@ -1,7 +1,8 @@
-therapist
 black
 flake8
 requests_cache
 responses
 pytest
 pytest-env
+isort
+

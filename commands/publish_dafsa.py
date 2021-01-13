@@ -1,7 +1,7 @@
-import os
 import json
-import tempfile
+import os
 import subprocess
+import tempfile
 
 import requests
 from kinto_http import Client, KintoException

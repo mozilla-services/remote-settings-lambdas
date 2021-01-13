@@ -7,22 +7,21 @@ import requests
 import responses
 from kinto_http import Client
 
-
 from commands.publish_dafsa import (
-    get_latest_hash,
-    download_resources,
-    get_stored_hash,
-    prepare_dafsa,
-    remote_settings_publish,
-    publish_dafsa,
-    PREPARE_TLDS_PY,
-    MAKE_DAFSA_PY,
-    LIST_URL,
     BUCKET_ID,
     BUCKET_ID_PREVIEW,
     COLLECTION_ID,
-    RECORD_ID,
     COMMIT_HASH_URL,
+    LIST_URL,
+    MAKE_DAFSA_PY,
+    PREPARE_TLDS_PY,
+    RECORD_ID,
+    download_resources,
+    get_latest_hash,
+    get_stored_hash,
+    prepare_dafsa,
+    publish_dafsa,
+    remote_settings_publish,
 )
 
 

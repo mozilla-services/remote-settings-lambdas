@@ -1,8 +1,8 @@
 import os
 
 import backoff
-import requests
 import kinto_http
+import requests
 from requests.adapters import TimeoutSauce
 
 

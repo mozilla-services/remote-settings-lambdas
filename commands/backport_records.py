@@ -1,10 +1,11 @@
-import os
 import json
+import os
 
-from kinto_http import BearerTokenAuth
 from decouple import config
+from kinto_http import BearerTokenAuth
 
-from . import KintoClient as Client, records_equal
+from . import KintoClient as Client
+from . import records_equal
 
 
 def backport_records(event, context, **kwargs):
