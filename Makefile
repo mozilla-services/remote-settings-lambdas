@@ -7,7 +7,7 @@ clean:
 $(INSTALL_STAMP): requirements.txt constraints.txt
 	virtualenv $(VENV) --python=python3
 	$(VENV)/bin/python -m pip install --upgrade pip
-	$(VENV)/bin/pip install -r requirements.txt -c constraints.txt
+	$(VENV)/bin/pip install --use-deprecated=legacy-resolver -r requirements.txt -c constraints.txt
 	$(VENV)/bin/pip install therapist pytest
 	touch $(INSTALL_STAMP)
 
