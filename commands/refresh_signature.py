@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from kinto_http import BearerTokenAuth, KintoException
 
@@ -15,6 +15,10 @@ def timestamp_to_date(timestamp_milliseconds):
     return datetime.utcfromtimestamp(timestamp_seconds).strftime(
         "%Y-%m-%d %H:%M:%S UTC"
     )
+
+
+def utcnow():
+    return datetime.now(timezone.utc)
 
 
 def get_signed_source(server_info, change):
@@ -41,6 +45,7 @@ def refresh_signature(event, context, **kwargs):
     auth = event.get("refresh_signature_auth") or os.getenv("REFRESH_SIGNATURE_AUTH")
     if auth:
         auth = tuple(auth.split(":", 1)) if ":" in auth else BearerTokenAuth(auth)
+    min_signature_age = event.get("min_signature_age") or os.getenv("MIN_SIGNATURE_AGE", 5)
 
     # Look at the collections in the changes endpoint.
     bucket = event.get("bucket", "monitor")
@@ -75,6 +80,15 @@ def refresh_signature(event, context, **kwargs):
             collection_metadata = client.get_collection()["data"]
             last_modified = collection_metadata["last_modified"]
             status = collection_metadata.get("status")
+            last_signature_date = collection_metadata.get("last_signature_date")
+
+            # Skip signature refresh if the collection was signed recently.
+            if last_signature_date:
+                last_signature_dt = datetime.fromisoformat(last_signature_date)
+                last_signature_age = (utcnow() - last_signature_dt).days
+                if last_signature_age < min_signature_age:
+                    print("SKIP (only %s days old)" % last_signature_age)
+                    continue
 
             # 2. Refresh!
             print("Refresh signature: ", end="")
