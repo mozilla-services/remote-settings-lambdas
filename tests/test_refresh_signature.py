@@ -1,7 +1,7 @@
 import json
 import unittest
-from unittest import mock
 from datetime import datetime, timezone
+from unittest import mock
 
 import responses
 
@@ -30,10 +30,19 @@ class TestSignatureRefresh(unittest.TestCase):
             self.server + "/",
             json={
                 "settings": {"batch_max_requests": 10},
-                "capabilities": {"signer": {"resources": [{
-                    "source": {"bucket": "main-workspace", "collection": None},
-                    "destination": {"bucket": "main", "collection": None},
-                }]}},
+                "capabilities": {
+                    "signer": {
+                        "resources": [
+                            {
+                                "source": {
+                                    "bucket": "main-workspace",
+                                    "collection": None,
+                                },
+                                "destination": {"bucket": "main", "collection": None},
+                            }
+                        ]
+                    }
+                },
             },
         )
 
@@ -48,14 +57,15 @@ class TestSignatureRefresh(unittest.TestCase):
             },
         )
 
-        for cid, date in [("search-config", "2019-01-11T15:11:07.807323+00:00"), ("top-sites", "2019-01-18T15:11:07.807323+00:00")]:
+        for cid, date in [
+            ("search-config", "2019-01-11T15:11:07.807323+00:00"),
+            ("top-sites", "2019-01-18T15:11:07.807323+00:00"),
+        ]:
             responses.add(
                 responses.GET,
                 self.server + "/buckets/main-workspace/collections/" + cid,
                 json={
-                    "data": {
-                        "last_modified": 42, "last_signature_date": date
-                    },
+                    "data": {"last_modified": 42, "last_signature_date": date},
                 },
             )
             responses.add(
@@ -65,7 +75,7 @@ class TestSignatureRefresh(unittest.TestCase):
                     "data": {
                         "last_modified": 43,
                     }
-                }
+                },
             )
 
         patch = mock.patch("commands.refresh_signature.utcnow")

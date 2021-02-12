@@ -45,7 +45,9 @@ def refresh_signature(event, context, **kwargs):
     auth = event.get("refresh_signature_auth") or os.getenv("REFRESH_SIGNATURE_AUTH")
     if auth:
         auth = tuple(auth.split(":", 1)) if ":" in auth else BearerTokenAuth(auth)
-    min_signature_age = event.get("min_signature_age") or os.getenv("MIN_SIGNATURE_AGE", 5)
+    min_signature_age = event.get("min_signature_age") or os.getenv(
+        "MIN_SIGNATURE_AGE", 5
+    )
 
     # Look at the collections in the changes endpoint.
     bucket = event.get("bucket", "monitor")
