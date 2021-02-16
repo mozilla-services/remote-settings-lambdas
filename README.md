@@ -30,6 +30,10 @@ Environment config:
 - ``REFRESH_SIGNATURE_AUTH``: credentials, either ``user:pass`` or ``{access-token}`` (default: ``None``)
 - ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
 - ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
+- ``MAX_SIGNATURE_AGE``: Refresh signatures that are older that this age in days (default: ``7``)
+
+> **Note**:
+> In order to force refresh of all signatures, set ``MAX_SIGNATURE_AGE=0``
 
 Example:
 
