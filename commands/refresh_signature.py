@@ -45,8 +45,8 @@ def refresh_signature(event, context, **kwargs):
     auth = event.get("refresh_signature_auth") or os.getenv("REFRESH_SIGNATURE_AUTH")
     if auth:
         auth = tuple(auth.split(":", 1)) if ":" in auth else BearerTokenAuth(auth)
-    max_signature_age = event.get("max_signature_age") or os.getenv(
-        "MAX_SIGNATURE_AGE", 7
+    max_signature_age = int(
+        event.get("max_signature_age", os.getenv("MAX_SIGNATURE_AGE", 7))
     )
 
     # Look at the collections in the changes endpoint.
