@@ -22,6 +22,6 @@ sentry-sdk==1.1.0 \
 python-decouple==3.4 \
     --hash=sha256:a8268466e6389a639a20deab9d880faee186eb1eb6a05e54375bdf158d691981 \
     --hash=sha256:2e5adb0263a4f963b58d7407c4760a2465d464ee212d733e2a2c179e54c08d8f
-backoff==1.10.0 \
-    --hash=sha256:5e73e2cbe780e1915a204799dba0a01896f45f4385e636bcca7a0614d879d0cd \
-    --hash=sha256:b8fba021fac74055ac05eb7c7bfce4723aedde6cd0a504e5326bcb0bdd6d19a4
+backoff==1.11.1 \
+    --hash=sha256:61928f8fa48d52e4faa81875eecf308eccfb1016b018bb6bd21e05b5d90a96c5 \
+    --hash=sha256:ccb962a2378418c667b3c979b504fdeb7d9e0d29c0579e3b13b86467177728cb
