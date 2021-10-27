@@ -90,21 +90,6 @@ Records are in sync. Nothing to do.
 
 ```
 
-
-### blockpages_generator
-
-Environment config:
-
-- ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
-- ``BUCKET``: Kinto blocklists bucket (default: ``blocklists``)
-- ``ADDONS_COLLECTIONS``: Addons blocklist (default: ``addons``)
-- ``PLUGINS_COLLECTIONS``: Addons blocklist (default: ``plugins``)
-- ``AWS_REGION``: AWS S3 region (default: ``eu-central-1``)
-- ``BUCKET_NAME``: AWS bucket name (default: ``amo-blocked-pages``)
-- ``REQUESTS_TIMEOUT_SECONDS``: Connection/Read timeout in seconds (default: ``2``)
-- ``REQUESTS_NB_RETRIES``: Number of retries before failing (default: ``4``)
-
-
 ### publish_dafsa
 
 Environment config:
