@@ -4,11 +4,11 @@ INSTALL_STAMP := $(VENV)/.install.stamp
 clean:
 	rm -fr .venv lambda.zip
 
-$(INSTALL_STAMP): requirements.txt constraints.txt dev.txt
+$(INSTALL_STAMP): requirements.txt requirements-dev.txt
 	virtualenv $(VENV) --python=python3
 	$(VENV)/bin/python -m pip install --upgrade pip
-	$(VENV)/bin/pip install --use-deprecated=legacy-resolver -r requirements.txt -c constraints.txt
-	$(VENV)/bin/pip install -r dev.txt
+	$(VENV)/bin/pip install -r requirements.txt
+	$(VENV)/bin/pip install -r requirements-dev.txt
 	touch $(INSTALL_STAMP)
 
 format: $(INSTALL_STAMP)
