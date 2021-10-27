@@ -1,0 +1,5 @@
+backoff
+python-decouple
+kinto-http
+requests
+sentry_sdk
