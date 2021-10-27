@@ -7,17 +7,3 @@ updates:
     day: sunday
     timezone: UCT
   open-pull-requests-limit: 99
-  ignore:
-  - dependency-name: boto3
-    versions:
-    - 1.17.33
-    - 1.17.39
-    - 1.17.44
-    - 1.17.53
-  - dependency-name: s3transfer
-    versions:
-    - 0.3.7
-  - dependency-name: botocore
-    versions:
-    - 1.20.33
-    - 1.20.39
