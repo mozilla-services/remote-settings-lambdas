@@ -193,7 +193,7 @@ class TestRecordsBackport(unittest.TestCase):
                 "capabilities": {
                     "signer": {
                         "to_review_enabled": False,
-                        "group_check_enabled": False,
+                        "group_check_enabled": True,
                         "resources": [
                             {
                                 "source": {
