@@ -134,8 +134,6 @@ def backport_records(event, context, **kwargs):
 
     has_autoapproval = not signed_dest[0].get(
         "to_review_enabled", signer_config["to_review_enabled"]
-    ) and not signed_dest[0].get(
-        "group_check_enabled", signer_config["group_check_enabled"]
     )
     if has_autoapproval:
         # Approve the changes.
