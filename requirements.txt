@@ -29,17 +29,17 @@ idna==3.3 \
     # via
     #   kinto-http
     #   requests
-kinto-http==10.8.0 \
-    --hash=sha256:8d9e052155792f2e173f651058ebc541a726147147be1cc872252e2b3a58ced1 \
-    --hash=sha256:db5d622ce1d64f25acd3dd605c545e9ecd6f2252d1de101c09767083e9084eeb
+kinto-http==10.9.0 \
+    --hash=sha256:10c947f027f2ac2d3549e830abb623d027fd48c56754d906b7a378c10e1106b3 \
+    --hash=sha256:27626575924378d6434b7bb77d4a19bb11a95d76e7a12aee8fd6b8c052292ecc
     # via -r requirements.in
 python-decouple==3.6 \
     --hash=sha256:2838cdf77a5cf127d7e8b339ce14c25bceb3af3e674e039d4901ba16359968c7 \
     --hash=sha256:6cf502dc963a5c642ea5ead069847df3d916a6420cad5599185de6bab11d8c2e
     # via -r requirements.in
-requests==2.26.0 \
-    --hash=sha256:6c1246513ecd5ecd4528a0906f910e8f0f9c6b8ec72030dc9fd154dc1a6efd24 \
-    --hash=sha256:b8aa58f8cf793ffd8782d3d8cb19e66ef36f7aba4353eec859e74678b01b07a7
+requests==2.27.1 \
+    --hash=sha256:68d7c56fd5a8999887728ef304a6d12edc7be74f1cfa47714fc8b414525c9a61 \
+    --hash=sha256:f22fa1e554c9ddfd16e6e41ac79759e17be9e492b3587efa038054674760e72d
     # via
     #   -r requirements.in
     #   kinto-http
