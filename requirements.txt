@@ -43,9 +43,9 @@ requests==2.27.1 \
     # via
     #   -r requirements.in
     #   kinto-http
-sentry-sdk==1.5.10 \
-    --hash=sha256:0a9eb20a84f4c17c08c57488d59fdad18669db71ebecb28fb0721423a33535f9 \
-    --hash=sha256:972c8fe9318a415b5cf35f687f568321472ef94b36806407c370ce9c88a67f2e
+sentry-sdk==1.5.11 \
+    --hash=sha256:6c01d9d0b65935fd275adc120194737d1df317dce811e642cbf0394d0d37a007 \
+    --hash=sha256:c17179183cac614e900cbd048dab03f49a48e2820182ec686c25e7ce46f8548f
     # via -r requirements.in
 unidecode==1.3.2 \
     --hash=sha256:215fe33c9d1c889fa823ccb66df91b02524eb8cc8c9c80f9c5b8129754d27829 \
