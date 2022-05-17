@@ -6,7 +6,7 @@ import sys
 
 import sentry_sdk
 from decouple import config
-from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
+
 
 SENTRY_DSN = config("SENTRY_DSN", default=None)
 
@@ -14,7 +14,14 @@ if SENTRY_DSN:
     # Note! If you don't do `sentry_sdk.init(DSN)` it will still work
     # to do things like calling `sentry_sdk.capture_exception(exception)`
     # It just means it's a noop.
-    sentry_sdk.init(SENTRY_DSN, integrations=[AwsLambdaIntegration()])
+    if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
+        integrations = [AwsLambdaIntegration()]
+    else:
+        from sentry_sdk.integrations.gcp import GcpIntegration
+        integrations = [GcpIntegration()]
+
+    sentry_sdk.init(SENTRY_DSN, integrations=integrations)
 
 
 def help_(**kwargs):
