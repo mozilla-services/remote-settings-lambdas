@@ -9,12 +9,16 @@ from decouple import config
 from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
 
 SENTRY_DSN = config("SENTRY_DSN", default=None)
+SENTRY_ENV = config("SENTRY_ENV", deafult=None)
 
 if SENTRY_DSN:
     # Note! If you don't do `sentry_sdk.init(DSN)` it will still work
     # to do things like calling `sentry_sdk.capture_exception(exception)`
     # It just means it's a noop.
-    sentry_sdk.init(SENTRY_DSN, integrations=[AwsLambdaIntegration()])
+    env_option = {}
+    if SENTRY_ENV:
+        env_option = {"environment": SENTRY_ENV}
+    sentry_sdk.init(SENTRY_DSN, integrations=[AwsLambdaIntegration()], **env_option)
 
 
 def help_(**kwargs):
