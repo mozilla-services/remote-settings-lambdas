@@ -9,7 +9,7 @@ from decouple import config
 from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
 
 SENTRY_DSN = config("SENTRY_DSN", default=None)
-SENTRY_ENV = config("SENTRY_ENV", deafult=None)
+SENTRY_ENV = config("SENTRY_ENV", default=None)
 
 if SENTRY_DSN:
     # Note! If you don't do `sentry_sdk.init(DSN)` it will still work
