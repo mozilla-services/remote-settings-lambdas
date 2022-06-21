@@ -4,8 +4,10 @@ A collection of scripts related to the Remote Settings service.
 
 ## Sentry
 
-All commands use Sentry to report any unexpected errors. The `SENTRY_DSN`
-environment variable is not required but is recommended.
+All commands use Sentry to report any unexpected errors. Sentry can be configured with these environment variables, which are recommended, but not required:
+
+- `SENTRY_DSN`: The DSN from the "Client Keys" section in the project settings in Sentry.
+- `SENTRY_ENV`: The environment to use for Sentry, e.g. dev, stage or prod.
 
 ## Commands
 
