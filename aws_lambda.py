@@ -19,11 +19,15 @@ if SENTRY_DSN:
     if SENTRY_ENV:
         env_option = {"environment": SENTRY_ENV}
     if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        # We're running in AWS. See https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html
         from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
         integrations = [AwsLambdaIntegration()]
-    else:
+    elif os.getenv("GOOGLE_CLOUD_PROJECT"):
+        # We're running in Google Cloud. See https://cloud.google.com/functions/docs/configuring/env-var
         from sentry_sdk.integrations.gcp import GcpIntegration
         integrations = [GcpIntegration()]
+    else:
+        raise EnvironmentError("Could not determine Cloud environment for Sentry")
     sentry_sdk.init(SENTRY_DSN, integrations=integrations, **env_option)
 
 
