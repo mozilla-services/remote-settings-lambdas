@@ -22,7 +22,7 @@ if SENTRY_DSN:
         # We're running in AWS. See https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html
         from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
         integrations = [AwsLambdaIntegration()]
-    elif os.getenv("GOOGLE_CLOUD_PROJECT"):
+    elif os.getenv("FUNCTION_TARGET", os.getenv("GOOGLE_CLOUD_PROJECT")):
         # We're running in Google Cloud. See https://cloud.google.com/functions/docs/configuring/env-var
         from sentry_sdk.integrations.gcp import GcpIntegration
         integrations = [GcpIntegration()]
