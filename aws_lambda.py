@@ -27,7 +27,7 @@ if SENTRY_DSN:
         from sentry_sdk.integrations.gcp import GcpIntegration
         integrations = [GcpIntegration()]
     else:
-        raise EnvironmentError("Could not determine Cloud environment for Sentry")
+        raise RuntimeError("Could not determine Cloud environment for Sentry")
     sentry_sdk.init(SENTRY_DSN, integrations=integrations, **env_option)
 
 
