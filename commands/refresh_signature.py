@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timezone
 
-from kinto_http import BearerTokenAuth, KintoException
+from kinto_http import KintoException
 
 from . import KintoClient as Client
 
@@ -43,8 +43,6 @@ def refresh_signature(event, context, **kwargs):
     """Refresh the signatures of each collection."""
     server_url = event["server"]
     auth = event.get("refresh_signature_auth") or os.getenv("REFRESH_SIGNATURE_AUTH")
-    if auth:
-        auth = tuple(auth.split(":", 1)) if ":" in auth else BearerTokenAuth(auth)
     max_signature_age = int(
         event.get("max_signature_age", os.getenv("MAX_SIGNATURE_AGE", 7))
     )

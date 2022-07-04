@@ -2,7 +2,6 @@ import json
 import os
 
 from decouple import config
-from kinto_http import BearerTokenAuth
 
 from . import KintoClient as Client
 from . import records_equal
@@ -51,17 +50,13 @@ def backport_records(event, context, **kwargs):
         server_url=server_url,
         bucket=source_bucket,
         collection=source_collection,
-        auth=tuple(source_auth.split(":", 1))
-        if ":" in source_auth
-        else BearerTokenAuth(source_auth),
+        auth=source_auth,
     )
     dest_client = Client(
         server_url=server_url,
         bucket=dest_bucket,
         collection=dest_collection,
-        auth=tuple(dest_auth.split(":", 1))
-        if ":" in dest_auth
-        else BearerTokenAuth(dest_auth),
+        auth=dest_auth,
     )
 
     source_records = source_client.get_records(**source_filters)

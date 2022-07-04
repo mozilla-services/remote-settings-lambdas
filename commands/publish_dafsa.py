@@ -97,9 +97,6 @@ def publish_dafsa(event, context):
     """Publish the Public Suffix List from https://publicsuffix.org"""
     server = event.get("server") or os.getenv("SERVER")
     auth = event.get("auth") or os.getenv("AUTH")
-    # Auth format assumed to be "Username:Password"
-    if auth:
-        auth = tuple(auth.split(":", 1))
 
     client = Client(
         server_url=server, auth=auth, bucket=BUCKET_ID, collection=COLLECTION_ID
