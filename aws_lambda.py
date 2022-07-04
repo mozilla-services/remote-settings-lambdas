@@ -6,7 +6,7 @@ import sys
 
 import sentry_sdk
 from decouple import config
-from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
+
 
 SENTRY_DSN = config("SENTRY_DSN", default=None)
 SENTRY_ENV = config("SENTRY_ENV", default=None)
@@ -18,7 +18,17 @@ if SENTRY_DSN:
     env_option = {}
     if SENTRY_ENV:
         env_option = {"environment": SENTRY_ENV}
-    sentry_sdk.init(SENTRY_DSN, integrations=[AwsLambdaIntegration()], **env_option)
+    if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        # We're running in AWS. See https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html
+        from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
+        integrations = [AwsLambdaIntegration()]
+    elif os.getenv("FUNCTION_TARGET", os.getenv("GOOGLE_CLOUD_PROJECT")):
+        # We're running in Google Cloud. See https://cloud.google.com/functions/docs/configuring/env-var
+        from sentry_sdk.integrations.gcp import GcpIntegration
+        integrations = [GcpIntegration()]
+    else:
+        raise RuntimeError("Could not determine Cloud environment for Sentry")
+    sentry_sdk.init(SENTRY_DSN, integrations=integrations, **env_option)
 
 
 def help_(**kwargs):
