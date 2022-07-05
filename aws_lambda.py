@@ -10,6 +10,7 @@ from decouple import config
 
 SENTRY_DSN = config("SENTRY_DSN", default=None)
 SENTRY_ENV = config("SENTRY_ENV", default=None)
+SERVER_URL = os.getenv("SERVER", "http://localhost:8888/v1")
 
 if SENTRY_DSN:
     # Note! If you don't do `sentry_sdk.init(DSN)` it will still work
@@ -61,7 +62,7 @@ Available commands:
 
 def run(command, event=None, context=None):
     if event is None:
-        event = {"server": os.getenv("SERVER", "http://localhost:8888/v1")}
+        event = {"server": SERVER_URL}
     if context is None:
         context = {"sentry_sdk": sentry_sdk}
 
@@ -70,10 +71,15 @@ def run(command, event=None, context=None):
         mod = importlib.import_module(f"commands.{command}")
         command = getattr(mod, command)
 
-    # Note! If the sentry_sdk was initialized with
-    # the AwsLambdaIntegration integration, it is now ready to automatically
-    # capture all and any unexpected exceptions.
-    # See https://docs.sentry.io/platforms/python/aws_lambda/
+    # Note! If the sentry_sdk was initialized with the platform integration,
+    # it is now ready to automatically capture all and any unexpected exceptions.
+    # See https://docs.sentry.io/platforms/python/guides/aws-lambda/
+    # See https://docs.sentry.io/platforms/python/guides/gcp-functions/
+
+    # Option to test failure to test Sentry integration.
+    if event.get("force_fail") or os.getenv("FORCE_FAIL"):
+        raise Exception("Found forced failure flag")
+
     command(event, context)
 
 
