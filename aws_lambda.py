@@ -77,7 +77,7 @@ def run(command, event=None, context=None):
     # See https://docs.sentry.io/platforms/python/guides/gcp-functions/
 
     # Option to test failure to test Sentry integration.
-    if "force_fail" in event or os.getenv("FORCE_FAIL"):
+    if event.get("force_fail") or os.getenv("FORCE_FAIL"):
         raise Exception("Found forced failure flag")
 
     command(event, context)
