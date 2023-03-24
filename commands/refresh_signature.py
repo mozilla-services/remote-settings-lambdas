@@ -41,7 +41,7 @@ def get_signed_source(server_info, change):
 
 def refresh_signature(event, context, **kwargs):
     """Refresh the signatures of each collection."""
-    server_url = event["server"]
+    server_url = event.get("server") or os.getenv("SERVER")
     auth = event.get("refresh_signature_auth") or os.getenv("REFRESH_SIGNATURE_AUTH")
     max_signature_age = int(
         event.get("max_signature_age", os.getenv("MAX_SIGNATURE_AGE", 7))

@@ -9,7 +9,7 @@ from . import records_equal
 
 def backport_records(event, context, **kwargs):
     """Backport records creations, updates and deletions from one collection to another."""
-    server_url = event["server"]
+    server_url = event.get("server") or os.getenv("SERVER")
     source_auth = (
         event.get("backport_records_source_auth")
         or os.environ["BACKPORT_RECORDS_SOURCE_AUTH"]
