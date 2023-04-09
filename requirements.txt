@@ -24,9 +24,9 @@ idna==3.3 \
     --hash=sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff \
     --hash=sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d
     # via requests
-kinto-http==11.0.0 \
-    --hash=sha256:805187fe9895b7eb7e91d68dc5f697c1946a4f6c33081ba14beadecbfe73cabf \
-    --hash=sha256:be476b147958eaaae350e39f3f9579d78222786042ca373e4ac94f8ec8dd1d83
+kinto-http==11.0.1 \
+    --hash=sha256:294ef42073a4accd577468525f5d8ed30003c6eaaaa1f091e46cd0993d6fceb6 \
+    --hash=sha256:baf213bf137b3b9819cf14b51e0fb798adf1040ded5f065f99b386943762d4f9
     # via -r requirements.in
 python-decouple==3.8 \
     --hash=sha256:ba6e2657d4f376ecc46f77a3a615e058d93ba5e465c01bbe57289bfb7cce680f \
