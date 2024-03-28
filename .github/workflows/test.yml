@@ -31,3 +31,7 @@ jobs:
 
       - name: Run unit tests
         run: make test
+
+      - name: Build the archive
+        run: |
+          make zip
