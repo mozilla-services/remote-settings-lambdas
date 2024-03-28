@@ -2,10 +2,10 @@ VENV := $(shell echo $${VIRTUAL_ENV-.venv})
 INSTALL_STAMP := $(VENV)/.install.stamp
 
 clean:
-	rm -fr .venv lambda.zip
+	rm -fr $(VENV) lambda.zip
 
 $(INSTALL_STAMP): requirements.txt requirements-dev.txt
-	virtualenv $(VENV) --python=python3
+	python -m venv $(VENV)
 	$(VENV)/bin/python -m pip install --upgrade pip
 	$(VENV)/bin/pip install -r requirements.txt
 	$(VENV)/bin/pip install -r requirements-dev.txt
