@@ -33,5 +33,10 @@ jobs:
         run: make test
 
       - name: Build the archive
-        run: |
-          make zip
+        run: make build
+
+      - name: Run the default entrypoint
+        run: docker run remote-settings-lambdas --help
+
+      - name: Fetch the archive from the container
+        run: make zip
