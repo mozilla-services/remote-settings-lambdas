@@ -92,13 +92,6 @@ Records are in sync. Nothing to do.
 
 ```
 
-### publish_dafsa
-
-Environment config:
-
-- ``SERVER``: server URL (default: ``http://localhost:8888/v1``)
-- ``AUTH``: authentication to edit the ``public-suffix-list`` collection
-
 
 ### sync_megaphone
 
