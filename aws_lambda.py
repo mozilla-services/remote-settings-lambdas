@@ -91,10 +91,6 @@ def blockpages_generator(*args, **kwargs):
     return run("blockpages_generator", *args, **kwargs)
 
 
-def publish_dafsa(*args, **kwargs):
-    return run("publish_dafsa", *args, **kwargs)
-
-
 def refresh_signature(*args, **kwargs):
     return run("refresh_signature", *args, **kwargs)
 
