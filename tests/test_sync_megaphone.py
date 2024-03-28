@@ -17,9 +17,7 @@ class TestSyncMegaphone(unittest.TestCase):
             f"{self.server}/buckets/monitor/collections/changes/records"
         )
         self.megaphone_broadcasts_uri = f"{self.megaphone_url}/broadcasts"
-        self.megaphone_broadcast_uri = (
-            f"{self.megaphone_url}/broadcasts/{self.broadcast_id}"
-        )
+        self.megaphone_broadcast_uri = f"{self.megaphone_url}/broadcasts/{self.broadcast_id}"
         self.event = {
             k: getattr(self, k)
             for k in [
@@ -152,10 +150,5 @@ class TestSyncMegaphone(unittest.TestCase):
         assert responses.calls[0].request.method == "GET"
         assert responses.calls[1].request.method == "GET"
         assert responses.calls[2].request.body == '"10"'
-        assert (
-            responses.calls[1].request.headers["authorization"] == "Bearer reader-token"
-        )
-        assert (
-            responses.calls[2].request.headers["authorization"]
-            == "Bearer broadcaster-token"
-        )
+        assert responses.calls[1].request.headers["authorization"] == "Bearer reader-token"
+        assert responses.calls[2].request.headers["authorization"] == "Bearer broadcaster-token"

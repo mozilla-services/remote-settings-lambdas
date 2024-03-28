@@ -99,16 +99,8 @@ class TestSignatureRefresh(unittest.TestCase):
             json=MONITOR_CHANGES,
         )
 
-        yesterday = (
-            (datetime.now() - timedelta(days=1))
-            .replace(tzinfo=timezone.utc)
-            .isoformat()
-        )
-        day_before = (
-            (datetime.now() - timedelta(days=2))
-            .replace(tzinfo=timezone.utc)
-            .isoformat()
-        )
+        yesterday = (datetime.now() - timedelta(days=1)).replace(tzinfo=timezone.utc).isoformat()
+        day_before = (datetime.now() - timedelta(days=2)).replace(tzinfo=timezone.utc).isoformat()
 
         for cid, date in [
             ("search-config", yesterday),
