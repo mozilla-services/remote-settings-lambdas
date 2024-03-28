@@ -1,0 +1,30 @@
+name: Create a release on tag
+on: 
+  push: 
+    tags:
+      - "*.*.*"
+jobs:
+  build: 
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release if one doesn't exist yet
+        run: |
+          EXISTING_RELEASE=$(gh release view $GITHUB_REF_NAME --json="id" || echo '')
+          if [[ -z $EXISTING_RELEASE ]]; then
+              gh release create $GITHUB_REF_NAME --generate-notes -d
+          fi
+
+      - name: Build the archive
+        run: |
+          make zip
+
+      - name: Upload built archive to release
+        run: |
+          gh release upload $GITHUB_REF_NAME remote-settings-lambdas-$GITHUB_REF_NAME.zip --clobber

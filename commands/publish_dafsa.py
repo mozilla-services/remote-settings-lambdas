@@ -9,9 +9,7 @@ from kinto_http import Client, KintoException
 
 PSL_FILENAME = "public_suffix_list.dat"
 
-COMMIT_HASH_URL = (
-    f"https://api.github.com/repos/publicsuffix/list/commits?path={PSL_FILENAME}"
-)
+COMMIT_HASH_URL = f"https://api.github.com/repos/publicsuffix/list/commits?path={PSL_FILENAME}"
 LIST_URL = f"https://raw.githubusercontent.com/publicsuffix/list/master/{PSL_FILENAME}"
 
 MAKE_DAFSA_PY = "https://hg.mozilla.org/mozilla-central/raw-file/27de3a352a395fd4fac5964d1027a3144e28224b/xpcom/ds/tools/make_dafsa.py"  # noqa
@@ -64,12 +62,8 @@ def prepare_dafsa(directory):
     prepare_tlds_py_path = os.path.join(directory, "prepare_tlds.py")
     raw_psl_path = os.path.join(directory, PSL_FILENAME)
     # Make the DAFSA
-    command = (
-        f"python3 {prepare_tlds_py_path} {raw_psl_path} --bin > {output_binary_path}"
-    )
-    run = subprocess.Popen(
-        command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-    )
+    command = f"python3 {prepare_tlds_py_path} {raw_psl_path} --bin > {output_binary_path}"
+    run = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     run.wait()
     if run.returncode != 0:
         raise Exception("DAFSA Build Failed !!!")
@@ -98,9 +92,7 @@ def publish_dafsa(event, context):
     server = event.get("server") or os.getenv("SERVER")
     auth = event.get("auth") or os.getenv("AUTH")
 
-    client = Client(
-        server_url=server, auth=auth, bucket=BUCKET_ID, collection=COLLECTION_ID
-    )
+    client = Client(server_url=server, auth=auth, bucket=BUCKET_ID, collection=COLLECTION_ID)
 
     latest_hash = get_latest_hash(COMMIT_HASH_URL)
     stored_hash = get_stored_hash(client)

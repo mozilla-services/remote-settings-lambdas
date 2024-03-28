@@ -34,9 +34,7 @@ class TestsGetLatestHash(unittest.TestCase):
 
     @responses.activate
     def test_HTTPError_raised_when_404(self):
-        responses.add(
-            responses.GET, COMMIT_HASH_URL, json={"error": "not found"}, status=404
-        )
+        responses.add(responses.GET, COMMIT_HASH_URL, json={"error": "not found"}, status=404)
         with self.assertRaises(requests.exceptions.HTTPError) as e:
             get_latest_hash(COMMIT_HASH_URL)
             self.assertEqual(e.status_code, 404)
@@ -54,9 +52,7 @@ class TestDownloadResources(unittest.TestCase):
     @responses.activate
     def test_HTTPError_raised_when_404(self):
         with tempfile.TemporaryDirectory() as tmp:
-            responses.add(
-                responses.GET, PREPARE_TLDS_PY, json={"error": "not found"}, status=404
-            )
+            responses.add(responses.GET, PREPARE_TLDS_PY, json={"error": "not found"}, status=404)
             with self.assertRaises(requests.exceptions.HTTPError) as e:
                 download_resources(tmp, PREPARE_TLDS_PY)
                 self.assertEqual(e.status_code, 404)
@@ -85,9 +81,7 @@ class TestGetStoredHash(unittest.TestCase):
 
     @responses.activate
     def test_returns_none_when_no_record_found(self):
-        responses.add(
-            responses.GET, self.record_uri, json={"error": "not found"}, status=404
-        )
+        responses.add(responses.GET, self.record_uri, json={"error": "not found"}, status=404)
         self.assertIsNone(get_stored_hash(self.client))
 
 
@@ -129,9 +123,7 @@ class TestRemoteSettingsPublish(unittest.TestCase):
             self.attachment_uri,
             json={"data": {"commit-hash": "fake-commit-hash"}},
         )
-        responses.add(
-            responses.PATCH, self.collection_uri, json={"data": {"status": "to-review"}}
-        )
+        responses.add(responses.PATCH, self.collection_uri, json={"data": {"status": "to-review"}})
 
         with tempfile.TemporaryDirectory() as tmp:
             dafsa_filename = f"{tmp}/dafsa.bin"
@@ -177,9 +169,7 @@ class TestPublishDafsa(unittest.TestCase):
 
     @responses.activate
     def test_prepare_and_publish_are_not_called_when_hashes_matches(self):
-        responses.add(
-            responses.GET, COMMIT_HASH_URL, json=[{"sha": "fake-commit-hash"}]
-        )
+        responses.add(responses.GET, COMMIT_HASH_URL, json=[{"sha": "fake-commit-hash"}])
         responses.add(
             responses.GET,
             self.record_uri,
@@ -193,9 +183,7 @@ class TestPublishDafsa(unittest.TestCase):
 
     @responses.activate
     def test_prepare_and_publish_not_called_when_pending_review(self):
-        responses.add(
-            responses.GET, COMMIT_HASH_URL, json=[{"sha": "fake-commit-hash"}]
-        )
+        responses.add(responses.GET, COMMIT_HASH_URL, json=[{"sha": "fake-commit-hash"}])
         responses.add(
             responses.GET,
             self.record_uri,
@@ -214,9 +202,7 @@ class TestPublishDafsa(unittest.TestCase):
 
     @responses.activate
     def test_prepare_and_publish_are_called_when_hashes_do_not_match(self):
-        responses.add(
-            responses.GET, COMMIT_HASH_URL, json=[{"sha": "fake-commit-hash"}]
-        )
+        responses.add(responses.GET, COMMIT_HASH_URL, json=[{"sha": "fake-commit-hash"}])
         responses.add(
             responses.GET,
             self.record_uri,

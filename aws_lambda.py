@@ -22,10 +22,12 @@ if SENTRY_DSN:
     if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
         # We're running in AWS. See https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html
         from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
+
         integrations = [AwsLambdaIntegration()]
     elif os.getenv("FUNCTION_TARGET", os.getenv("GOOGLE_CLOUD_PROJECT")):
         # We're running in Google Cloud. See https://cloud.google.com/functions/docs/configuring/env-var
         from sentry_sdk.integrations.gcp import GcpIntegration
+
         integrations = [GcpIntegration()]
     else:
         raise RuntimeError("Could not determine Cloud environment for Sentry")
@@ -36,19 +38,16 @@ def help_(**kwargs):
     """Show this help."""
 
     def white_bold(s):
-        return f"\033[1m\x1B[37m{s}\033[0;0m"
+        return f"\033[1m\x1b[37m{s}\033[0;0m"
 
     entrypoints = [
-        os.path.splitext(os.path.basename(f))[0]
-        for f in glob.glob("./commands/[a-z]*.py")
+        os.path.splitext(os.path.basename(f))[0] for f in glob.glob("./commands/[a-z]*.py")
     ]
     commands = [
         getattr(importlib.import_module(f"commands.{entrypoint}"), entrypoint)
         for entrypoint in entrypoints
     ]
-    func_listed = "\n - ".join(
-        [f"{white_bold(f.__name__)}: {f.__doc__}" for f in commands]
-    )
+    func_listed = "\n - ".join([f"{white_bold(f.__name__)}: {f.__doc__}" for f in commands])
     print(
         f"""
 Remote Settings lambdas.
