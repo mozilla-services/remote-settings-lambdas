@@ -118,8 +118,7 @@ $ SERVER=https://settings.prod.mozaws.net/v1 MEGAPHONE_URL="https://push.service
 ## Test locally
 
 ```
-$ make virtualenv
-$ source .venv/bin/activate
+$ make test
 
 $ SERVER=https://firefox.settings.services.mozilla.com/v1/  python aws_lambda.py validate_signature
 ```
