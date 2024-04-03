@@ -5,3 +5,6 @@ __pycache__/
 docs/build/
 requests_cache1.sqlite
 .vscode/
+.ruff_cache/
+.pytest_cache/
+.venv/

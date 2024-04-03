@@ -7,3 +7,13 @@ updates:
     day: sunday
     timezone: UCT
   open-pull-requests-limit: 99
+  groups:
+    minor-patch-dependencies:
+      update-types: ["minor", "patch"]
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: weekly
+  groups:
+    all-dependencies:
+      update-types: ["major", "minor", "patch"]

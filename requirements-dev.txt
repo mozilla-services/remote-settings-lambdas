@@ -1,7 +1,5 @@
-black
-flake8
+ruff
 requests_cache
 responses
 pytest
 pytest-env
-isort

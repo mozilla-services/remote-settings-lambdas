@@ -118,8 +118,7 @@ $ SERVER=https://settings.prod.mozaws.net/v1 MEGAPHONE_URL="https://push.service
 ## Test locally
 
 ```
-$ make virtualenv
-$ source .venv/bin/activate
+$ make test
 
 $ SERVER=https://firefox.settings.services.mozilla.com/v1/  python aws_lambda.py validate_signature
 ```
@@ -136,17 +135,10 @@ $ bash /path/to/kinto-dist/tests/smoke-test.sh
 
 ## Releasing
 
-- `git tag vX.Y.Z`
-- `git push origin master; git push --tags origin`
-- `make zip`
-- Go to releases page on Github and create a release for x.y.z
-- Attach the `remote-settings-lambdas-x.y.z.zip` file
-- [Click here][bugzilla-stage-link] to open a ticket to get it deployed to stage and [here][bugzilla-prod-link] to prod
-
-
-[bugzilla-stage-link]: https://bugzilla.mozilla.org/enter_bug.cgi?comment=Please%20upgrade%20the%20lambda%20functions%20to%20use%20the%20last%20release%20of%20remote-settings-lambdas.%0D%0A%0D%0A%5BInsert%20a%20short%20description%20of%20the%20changes%20here.%5D%0D%0A%0D%0Ahttps%3A%2F%2Fgithub.com%2Fmozilla-services%2Fremote-settings-lambdas%2Freleases%2Ftag%2FX.Y.Z%0D%0A%0D%0AThanks%21&component=Operations%3A%20Storage&product=Cloud%20Services&qa_contact=chartjes%40mozilla.com&short_desc=Please%20deploy%20remote-settings-lambdas-X.Y.Z%20lambda%20function%20to%20STAGE
-
-[bugzilla-prod-link]: https://bugzilla.mozilla.org/enter_bug.cgi?comment=Please%20upgrade%20the%20lambda%20functions%20to%20use%20the%20last%20release%20of%20remote-settings-lambdas.%0D%0A%0D%0A%5BInsert%20a%20short%20description%20of%20the%20changes%20here.%5D%0D%0A%0D%0Ahttps%3A%2F%2Fgithub.com%2Fmozilla-services%2Fremote-settings-lambdas%2Freleases%2Ftag%2FX.Y.Z%0D%0A%0D%0AThanks%21&component=Operations%3A%20Storage&product=Cloud%20Services&qa_contact=chartjes%40mozilla.com&short_desc=Please%20deploy%20remote-settings-lambdas-X.Y.Z%20lambda%20function%20to%20PROD
+1. Create a release on Github on https://github.com/mozilla-services/remote-settings-lambdas/releases/new
+2. Create a new tag `X.Y.Z` (*This tag will be created from the target when you publish this release.*)
+3. Generate release notes
+4. Publish release
 
 ## License 
 

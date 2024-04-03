@@ -1,27 +1,16 @@
-FROM python:3.7-slim
-RUN apt-get update && apt-get install -y zip
+FROM python:3.12-slim
+
 WORKDIR /lambda
 
 # Install the requirements.
-# Since we don't want to install the whole Pyramid ecosystem just to reuse its canonical
-# serialization, install it with ``--no-deps``.
 ADD requirements.txt /tmp/
 RUN pip install -U pip && \
-    pip install --disable-pip-version-check --quiet --target /lambda -r /tmp/requirements.txt && \
-    find /lambda -type d | xargs chmod ugo+rx && \
-    find /lambda -type f | xargs chmod ugo+r
+    pip install --disable-pip-version-check --quiet -r /tmp/requirements.txt
 
 # Add your source code
 ADD *.py /lambda/
 RUN mkdir /lambda/commands
 ADD commands/*.py /lambda/commands/
-RUN find /lambda -type d | xargs chmod ugo+rx && \
-    find /lambda -type f | xargs chmod ugo+r
-
-# compile the lot.
-RUN python -m compileall -q /lambda
-
-RUN zip --quiet -9r /lambda.zip .
 
 # Add entrypoint
 ENTRYPOINT ["./aws_lambda.py"]

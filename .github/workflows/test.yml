@@ -1,0 +1,39 @@
+on: pull_request
+
+name: Tests
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+
+      - name: Run linting and formatting checks
+        run: make lint
+
+  unit-tests:
+    name: Unit Tests
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Run unit tests
+        run: make test
+
+      - name: Build the archive
+        run: make build
+
+      - name: Run the default entrypoint
+        run: docker run remote-settings-lambdas --help

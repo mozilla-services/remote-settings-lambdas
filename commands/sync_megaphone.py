@@ -38,9 +38,7 @@ class Megaphone:
         resp = requests.put(url, auth=self.broadcaster_auth, data=version)
         resp.raise_for_status()
         logger.info(
-            "Sent version {} to megaphone. Response was {}".format(
-                version, resp.status_code
-            )
+            "Sent version {} to megaphone. Response was {}".format(version, resp.status_code)
         )
 
     def get_version(self):
@@ -75,9 +73,7 @@ def sync_megaphone(event, context):
     megaphone_broadcaster_auth = event.get("megaphone_broadcaster_auth") or os.getenv(
         "MEGAPHONE_BROADCASTER_AUTH"
     )
-    broadcaster_id = event.get("broadcaster_id") or os.getenv(
-        "BROADCASTER_ID", BROADCASTER_ID
-    )
+    broadcaster_id = event.get("broadcaster_id") or os.getenv("BROADCASTER_ID", BROADCASTER_ID)
     channel_id = event.get("channel_id") or os.getenv("CHANNEL_ID", CHANNEL_ID)
     broadcast_id = f"{broadcaster_id}/{channel_id}"
 

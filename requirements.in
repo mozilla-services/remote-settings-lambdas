@@ -3,3 +3,5 @@ python-decouple
 kinto-http
 requests
 sentry_sdk
+# kinto-http requires setuptools and its `pkg_resources` package
+setuptools
