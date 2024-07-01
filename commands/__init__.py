@@ -55,6 +55,14 @@ class KintoClient(kinto_http.Client):
     def get_records_timestamp(self, *args, **kwargs):
         return super().get_records_timestamp(*args, **kwargs)
 
+    @retry_timeout
+    def get_changeset(self, bid, cid, expected):
+        url = f"{self.session.server_url}/buckets/{bid}/collections/{cid}/changeset?_expected={expected}"
+        resp = requests.get(url)
+        resp.raise_for_status()
+        changeset = resp.json()
+        return changeset
+
 
 def records_equal(a, b):
     """Compare records, ignoring timestamps."""
