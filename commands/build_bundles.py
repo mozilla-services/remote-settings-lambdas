@@ -1,12 +1,12 @@
-import io
 import concurrent.futures
+import io
 import json
 import os
 import random
 import zipfile
 
 import requests
-
+from google.cloud import storage
 
 from . import KintoClient, retry_timeout
 
@@ -14,18 +14,34 @@ from . import KintoClient, retry_timeout
 SERVER = os.getenv("SERVER")
 REQUESTS_PARALLEL_COUNT = int(os.getenv("REQUESTS_PARALLEL_COUNT", "4"))
 BUNDLE_MAX_SIZE_BYTES = int(os.getenv("BUNDLE_MAX_SIZE_BYTES", "20_000_000"))
+BUILD_ALL = os.getenv("BUILD_ALL", "0") in "1yY"
+STORAGE_BUCKET_NAME = os.getenv("STORAGE_BUCKET_NAME", "rs-attachments")
+DESTINATION_FOLDER = os.getenv("DESTINATION_FOLDER", "bundles")
+SKIP_UPLOAD = os.getenv("SKIP_UPLOAD", "0") in "1yY"
 
 
 def call_parallel(func, args_list):
     results = []
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=REQUESTS_PARALLEL_COUNT
-    ) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=REQUESTS_PARALLEL_COUNT) as executor:
         futures = [executor.submit(func, *args) for args in args_list]
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            results.append(result)
+        results = [future.result() for future in futures]
     return results
+
+
+def fetch_all_changesets(client):
+    random_cache_bust = random.randint(999999000000, 999999999999)
+    monitor_changeset = client.get_changeset("monitor", "changes", random_cache_bust)
+    print("%s collections" % len(monitor_changeset["changes"]))
+
+    args_list = [
+        (c["bucket"], c["collection"], c["last_modified"]) for c in monitor_changeset["changes"]
+    ]
+    all_changesets = call_parallel(
+        lambda bid, cid, ts: client.get_changeset(bid, cid, ts), args_list
+    )
+    return [
+        {"bucket": bid, **changeset} for (bid, _, _), changeset in zip(args_list, all_changesets)
+    ]
 
 
 @retry_timeout
@@ -36,6 +52,9 @@ def fetch_attachment(url):
 
 
 def write_zip(output_path, content):
+    parent_folder = os.path.dirname(output_path)
+    os.makedirs(parent_folder, exist_ok=True)
+
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for filename, filecontent in content:
@@ -45,62 +64,75 @@ def write_zip(output_path, content):
     print("Wrote %r" % output_path)
 
 
+def sync_cloud_storage(folder):
+    # Ensure you have set the GOOGLE_APPLICATION_CREDENTIALS environment variable
+    # to the path of your Google Cloud service account key file before running this script.
+    client = storage.Client()
+    bucket = client.bucket(STORAGE_BUCKET_NAME)
+    local_files = set()
+    for root, _, files in os.walk(folder):
+        for file in files:
+            local_file_path = os.path.join(root, file)
+            remote_file_path = os.path.join(folder, file)
+
+            blob = bucket.blob(remote_file_path)
+            blob.upload_from_filename(local_file_path)
+            print(f"Uploaded {local_file_path} to gs://{STORAGE_BUCKET_NAME}/{remote_file_path}")
+            local_files.add(remote_file_path)
+
+    blobs = bucket.list_blobs(prefix=folder)
+    for blob in blobs:
+        if blob.name not in local_files:
+            blob.delete()
+            print(f"Deleted gs://{STORAGE_BUCKET_NAME}/{blob.name}")
+
+
 def build_bundles(event, context):
     rs_server = event.get("server") or SERVER
 
     client = KintoClient(server_url=rs_server)
 
-    # List server collections
-    random_cache_bust = random.randint(999999000000, 999999999999)
-    monitor_changeset = client.get_changeset("monitor", "changes", random_cache_bust)
-    main_collections = [
-        (c["bucket"], c["collection"], c["last_modified"])
-        for c in monitor_changeset["changes"]
-    ]
-    print("%s collections" % len(main_collections))
-
-    # Fetch all collections changesets and build "collections.zip"
-    all_changesets = call_parallel(
-        lambda bid, cid, ts: client.get_changeset(bid, cid, ts), main_collections
-    )
-    bid_cid_ts_changesets = list(zip(main_collections, all_changesets))
+    all_changesets = fetch_all_changesets(client)
     write_zip(
-        "collections.zip",
+        f"{DESTINATION_FOLDER}/changesets.zip",
         [
-            (f"{bid}--{cid}.json", json.dumps(changeset))
-            for (bid, cid, _), changeset in bid_cid_ts_changesets
+            ("{bucket}--{metadata[id]}.json".format(**changeset), json.dumps(changeset))
+            for changeset in all_changesets
         ],
     )
 
     base_url = client.server_info()["capabilities"]["attachments"]["base_url"]
 
-    for (bid, cid, _), changeset in bid_cid_ts_changesets:
-        # TODO: only build bundles for opted in collections.
-        # Either copy 'attachment' field into main bucket collections attributes on approve,
-        # or look-up signer resources to pick main-workspace collection from main collection.
+    for changeset in all_changesets:
+        if not BUILD_ALL and not changeset["metadata"].get("attachment", {}).get("bundle", False):
+            # Bundling not enabled.
+            continue
 
-        # Fetch all attachments and build "{bid}--{cid}.zip"
+        # Skip bundle if no attachments found.
+        bid = changeset["bucket"]
+        cid = changeset["metadata"]["id"]
         records = [r for r in changeset["changes"] if "attachment" in r]
         if not records:
             print("%s/%s has no attachments" % (bid, cid))
             continue
         print("%s/%s: %s records with attachments" % (bid, cid, len(records)))
 
+        # Skip bundle if total size is too big.
         total_size_bytes = sum(r["attachment"]["size"] for r in records)
+        total_size_mb = total_size_bytes / 1024 / 1024
         if total_size_bytes > BUNDLE_MAX_SIZE_BYTES:
-            print("Bundle would be too big. Skip.")
+            print(f"Bundle would be too big ({total_size_mb:.2f}MB). Skip.")
             continue
-        print("Attachments total size %sB" % total_size_bytes)
+        print(f"Attachments total size {total_size_mb:.2f}MB")
 
-        call_args = [(f'{base_url}{r["attachment"]["location"]}',) for r in records]
-        all_attachments = call_parallel(fetch_attachment, call_args)
+        # Fetch all attachments and build "{bid}--{cid}.zip"
+        args_list = [(f'{base_url}{r["attachment"]["location"]}',) for r in records]
+        all_attachments = call_parallel(fetch_attachment, args_list)
         write_zip(
-            f"{bid}--{cid}.zip",
+            f"{DESTINATION_FOLDER}/{bid}--{cid}.zip",
             [(f'{record["id"]}.meta.json', json.dumps(record)) for record in records]
-            + [
-                (record["id"], attachment)
-                for record, attachment in zip(records, all_attachments)
-            ],
+            + [(record["id"], attachment) for record, attachment in zip(records, all_attachments)],
         )
 
-    # TODO: send build zip files to Cloud Storage
+    if not SKIP_UPLOAD:
+        sync_cloud_storage(DESTINATION_FOLDER)
