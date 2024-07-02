@@ -98,6 +98,10 @@ def sync_megaphone(*args, **kwargs):
     return run("sync_megaphone", *args, **kwargs)
 
 
+def build_bundles(*args, **kwargs):
+    return run("build_bundles", *args, **kwargs)
+
+
 def main(*args):
     # Run the function specified in CLI arg.
     #
