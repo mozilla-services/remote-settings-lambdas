@@ -129,21 +129,36 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
     mock_fetch_all_changesets.return_value = [
         {
             "bucket": "bucket1",
-            "changes": [{"id": "record1", "attachment": {"location": "file.jpg", "size": 10}}],
+            "changes": [
+                {"id": "record1", "attachment": {"location": "file.jpg", "size": 10}},
+                {"id": "record2"},
+            ],
             "metadata": {"id": "collection1", "attachment": {"bundle": True}},
-        }
+        },
+        {  # collection without bundle flag
+            "bucket": "bucket2",
+            "changes": [{"id": "record2"}],
+            "metadata": {"id": "collection2"},
+        },
+        {  # collection without attachments
+            "bucket": "bucket3",
+            "changes": [{"id": "record3"}],
+            "metadata": {"id": "collection3", "attachment": {"bundle": True}},
+        },
     ]
 
     build_bundles(event, context={})
 
-    assert mock_write_zip.call_count == 2  # One for changesets and one for the attachments
+    assert mock_write_zip.call_count == 2  # One for changesets and only one for the attachments
     calls = mock_write_zip.call_args_list
 
     # Assert the first call (changesets.zip)
     changesets_zip_path, changesets_zip_files = calls[0][0]
     assert changesets_zip_path == "bundles/changesets.zip"
-    assert len(changesets_zip_files) == 1
+    assert len(changesets_zip_files) == 3
     assert changesets_zip_files[0][0] == "bucket1--collection1.json"
+    assert changesets_zip_files[1][0] == "bucket2--collection2.json"
+    assert changesets_zip_files[2][0] == "bucket3--collection3.json"
 
     # Assert the second call (attachments zip)
     attachments_zip_path, attachments_zip_files = calls[1][0]
@@ -153,7 +168,9 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
     assert attachments_zip_files[1][0] == "record1"
     assert attachments_zip_files[1][1] == b"jpeg_content"
 
-    mock_sync_cloud_storage.assert_called_once_with("bundles")
+    mock_sync_cloud_storage.assert_called_once_with(
+        "bundles", "remote-settings-nonprod-stage-attachments"
+    )
 
 
 @patch("commands.build_bundles.os.walk")
@@ -173,7 +190,7 @@ def test_sync_cloud_storage_upload_and_delete(mock_os_walk, mock_storage_client,
     mock_blob3.name = f"{local_folder}/file3.txt"
     bucket.list_blobs.return_value = [mock_blob1, mock_blob2, mock_blob3]
 
-    sync_cloud_storage(local_folder)
+    sync_cloud_storage(local_folder, "remote-bucket")
 
     # Check uploads
     mock_blob1.upload_from_filename.assert_called_once_with(f"{local_folder}/file1.txt")

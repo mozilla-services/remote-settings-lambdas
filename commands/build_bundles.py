@@ -1,4 +1,10 @@
-import concurrent.futures
+"""
+This command will create Zip files in order to bundle all collections data,
+and all attachments of collections that have the `attachment.bundle` flag in
+their metadata.
+It then uploads these zip files to Google Cloud Storage.
+"""
+
 import io
 import json
 import os
@@ -8,27 +14,26 @@ import zipfile
 import requests
 from google.cloud import storage
 
-from . import KintoClient, retry_timeout
+from . import KintoClient, call_parallel, retry_timeout
 
 
 SERVER = os.getenv("SERVER")
-REQUESTS_PARALLEL_COUNT = int(os.getenv("REQUESTS_PARALLEL_COUNT", "4"))
+REQUESTS_PARALLEL_COUNT = int(os.getenv("REQUESTS_PARALLEL_COUNT", "8"))
 BUNDLE_MAX_SIZE_BYTES = int(os.getenv("BUNDLE_MAX_SIZE_BYTES", "20_000_000"))
-BUILD_ALL = os.getenv("BUILD_ALL", "0") in "1yY"
-STORAGE_BUCKET_NAME = os.getenv("STORAGE_BUCKET_NAME", "rs-attachments")
+STORAGE_BUCKET_NAME = os.getenv("STORAGE_BUCKET_NAME", "remote-settings-nonprod-stage-attachments")
 DESTINATION_FOLDER = os.getenv("DESTINATION_FOLDER", "bundles")
+# Flags for local development
+BUILD_ALL = os.getenv("BUILD_ALL", "0") in "1yY"
 SKIP_UPLOAD = os.getenv("SKIP_UPLOAD", "0") in "1yY"
 
 
-def call_parallel(func, args_list):
-    results = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=REQUESTS_PARALLEL_COUNT) as executor:
-        futures = [executor.submit(func, *args) for args in args_list]
-        results = [future.result() for future in futures]
-    return results
-
-
 def fetch_all_changesets(client):
+    """
+    Return the `/changeset` responses for all collections listed
+    in the `monitor/changes` endpoint.
+    The result contains the metadata and all the records of all collections
+    for both preview and main buckets.
+    """
     random_cache_bust = random.randint(999999000000, 999999999999)
     monitor_changeset = client.get_changeset("monitor", "changes", random_cache_bust)
     print("%s collections" % len(monitor_changeset["changes"]))
@@ -37,7 +42,7 @@ def fetch_all_changesets(client):
         (c["bucket"], c["collection"], c["last_modified"]) for c in monitor_changeset["changes"]
     ]
     all_changesets = call_parallel(
-        lambda bid, cid, ts: client.get_changeset(bid, cid, ts), args_list
+        lambda bid, cid, ts: client.get_changeset(bid, cid, ts), args_list, REQUESTS_PARALLEL_COUNT
     )
     return [
         {"bucket": bid, **changeset} for (bid, _, _), changeset in zip(args_list, all_changesets)
@@ -51,7 +56,11 @@ def fetch_attachment(url):
     return resp.content
 
 
-def write_zip(output_path, content):
+def write_zip(output_path: str, content: list[tuple[str, bytes]]):
+    """
+    Write a Zip at the specified `output_path` location with the specified `content`.
+    The content is specified as a list of file names and their binary content.
+    """
     parent_folder = os.path.dirname(output_path)
     os.makedirs(parent_folder, exist_ok=True)
 
@@ -64,11 +73,15 @@ def write_zip(output_path, content):
     print("Wrote %r" % output_path)
 
 
-def sync_cloud_storage(folder):
+def sync_cloud_storage(folder, storage_bucket):
+    """
+    Synchronizes a local folder (eg. `bundles/`) with a remote one in the specified
+    `storage_bucket` name.
+    """
     # Ensure you have set the GOOGLE_APPLICATION_CREDENTIALS environment variable
     # to the path of your Google Cloud service account key file before running this script.
     client = storage.Client()
-    bucket = client.bucket(STORAGE_BUCKET_NAME)
+    bucket = client.bucket(storage_bucket)
     local_files = set()
     for root, _, files in os.walk(folder):
         for file in files:
@@ -77,17 +90,25 @@ def sync_cloud_storage(folder):
 
             blob = bucket.blob(remote_file_path)
             blob.upload_from_filename(local_file_path)
-            print(f"Uploaded {local_file_path} to gs://{STORAGE_BUCKET_NAME}/{remote_file_path}")
+            print(f"Uploaded {local_file_path} to gs://{storage_bucket}/{remote_file_path}")
             local_files.add(remote_file_path)
 
     blobs = bucket.list_blobs(prefix=folder)
     for blob in blobs:
         if blob.name not in local_files:
             blob.delete()
-            print(f"Deleted gs://{STORAGE_BUCKET_NAME}/{blob.name}")
+            print(f"Deleted gs://{storage_bucket}/{blob.name}")
 
 
 def build_bundles(event, context):
+    """
+    Main command entry point that:
+    - fetches all collections changesets
+    - builds a `bundles/changesets.zip`
+    - fetches attachments of all collections with bundle flag
+    - builds `bundles/{bid}--{cid}.zip` for each of them
+    - synchronizes the `bundles/` folder with a remote Cloud storage bucket
+    """
     rs_server = event.get("server") or SERVER
 
     client = KintoClient(server_url=rs_server)
@@ -127,7 +148,7 @@ def build_bundles(event, context):
 
         # Fetch all attachments and build "{bid}--{cid}.zip"
         args_list = [(f'{base_url}{r["attachment"]["location"]}',) for r in records]
-        all_attachments = call_parallel(fetch_attachment, args_list)
+        all_attachments = call_parallel(fetch_attachment, args_list, REQUESTS_PARALLEL_COUNT)
         write_zip(
             f"{DESTINATION_FOLDER}/{bid}--{cid}.zip",
             [(f'{record["id"]}.meta.json', json.dumps(record)) for record in records]
@@ -135,4 +156,4 @@ def build_bundles(event, context):
         )
 
     if not SKIP_UPLOAD:
-        sync_cloud_storage(DESTINATION_FOLDER)
+        sync_cloud_storage(DESTINATION_FOLDER, STORAGE_BUCKET_NAME)

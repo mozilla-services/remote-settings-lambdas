@@ -1,3 +1,4 @@
+import concurrent.futures
 import os
 
 import backoff
@@ -70,3 +71,11 @@ def records_equal(a, b):
     ra = {k: v for k, v in a.items() if k not in ignored_fields}
     rb = {k: v for k, v in b.items() if k not in ignored_fields}
     return ra == rb
+
+
+def call_parallel(func, args_list, max_workers=4):
+    results = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(func, *args) for args in args_list]
+        results = [future.result() for future in futures]
+    return results
