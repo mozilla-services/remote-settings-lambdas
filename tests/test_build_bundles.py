@@ -11,6 +11,7 @@ from commands.build_bundles import (
     call_parallel,
     fetch_all_changesets,
     fetch_attachment,
+    get_modified_timestamp,
     sync_cloud_storage,
     write_zip,
 )
@@ -103,6 +104,27 @@ def test_fetch_attachment():
     assert content == b"file_content"
 
 
+@responses.activate
+def test_get_modified_timestamp():
+    url = "http://example.com/file"
+    responses.add(
+        responses.GET,
+        url,
+        body=b"file_content",
+        headers={"Last-Modified": "Wed, 03 Jul 2024 11:04:48 GMT"},
+    )
+    timestamp = get_modified_timestamp(url)
+    assert timestamp == 1720004688000
+
+
+@responses.activate
+def test_get_modified_timestamp_missing():
+    url = "http://example.com/file"
+    responses.add(responses.GET, url, status=404)
+    timestamp = get_modified_timestamp(url)
+    assert timestamp is None
+
+
 def test_write_zip(tmpdir):
     content = [("file1.txt", "content1"), ("file2.txt", "content2")]
     output_path = os.path.join(tmpdir, "test.zip")
@@ -126,7 +148,24 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
     )
     responses.add(responses.GET, f"{server_url}/attachments/file.jpg", body=b"jpeg_content")
 
+    responses.add(
+        responses.GET,
+        f"{server_url}/attachments/bundles/changesets.zip",
+        headers={
+            "Last-Modified": "Wed, 03 Jul 2024 11:04:48 GMT"  # 1720004688000
+        },
+    )
+
     mock_fetch_all_changesets.return_value = [
+        {  # collection hasn't changed since last bundling
+            "bucket": "bucket0",
+            "changes": [
+                {"id": "record1", "attachment": {"location": "file.jpg", "size": 10}},
+                {"id": "record2"},
+            ],
+            "metadata": {"id": "collection0", "attachment": {"bundle": True}},
+            "timestamp": 1720004688000 - 10,
+        },
         {
             "bucket": "bucket1",
             "changes": [
@@ -134,16 +173,29 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
                 {"id": "record2"},
             ],
             "metadata": {"id": "collection1", "attachment": {"bundle": True}},
+            "timestamp": 1720004688000 + 10,
         },
         {  # collection without bundle flag
             "bucket": "bucket2",
             "changes": [{"id": "record2"}],
             "metadata": {"id": "collection2"},
+            "timestamp": 1720004688000 + 10,
         },
         {  # collection without attachments
             "bucket": "bucket3",
             "changes": [{"id": "record3"}],
             "metadata": {"id": "collection3", "attachment": {"bundle": True}},
+            "timestamp": 1720004688000 + 10,
+        },
+        {  # attachments too big
+            "bucket": "bucket4",
+            "changes": [
+                {"id": "id1", "attachment": {"size": 10_000_000}},
+                {"id": "id2", "attachment": {"size": 10_000_000}},
+                {"id": "id3", "attachment": {"size": 10_000_000}},
+            ],
+            "metadata": {"id": "collection4", "attachment": {"bundle": True}},
+            "timestamp": 1720004688000 + 10,
         },
     ]
 
@@ -154,32 +206,36 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
 
     # Assert the first call (changesets.zip)
     changesets_zip_path, changesets_zip_files = calls[0][0]
-    assert changesets_zip_path == "bundles/changesets.zip"
-    assert len(changesets_zip_files) == 3
-    assert changesets_zip_files[0][0] == "bucket1--collection1.json"
-    assert changesets_zip_files[1][0] == "bucket2--collection2.json"
-    assert changesets_zip_files[2][0] == "bucket3--collection3.json"
+    assert changesets_zip_path == "changesets.zip"
+    assert len(changesets_zip_files) == 5
+    assert changesets_zip_files[0][0] == "bucket0--collection0.json"
+    assert changesets_zip_files[1][0] == "bucket1--collection1.json"
+    assert changesets_zip_files[2][0] == "bucket2--collection2.json"
+    assert changesets_zip_files[3][0] == "bucket3--collection3.json"
 
     # Assert the second call (attachments zip)
     attachments_zip_path, attachments_zip_files = calls[1][0]
-    assert attachments_zip_path == "bundles/bucket1--collection1.zip"
+    assert attachments_zip_path == "bucket1--collection1.zip"
     assert len(attachments_zip_files) == 2
     assert attachments_zip_files[0][0] == "record1.meta.json"
     assert attachments_zip_files[1][0] == "record1"
     assert attachments_zip_files[1][1] == b"jpeg_content"
 
     mock_sync_cloud_storage.assert_called_once_with(
-        "bundles", "remote-settings-nonprod-stage-attachments"
+        "remote-settings-nonprod-stage-attachments",
+        "bundles",
+        [
+            "changesets.zip",
+            "bucket1--collection1.zip",
+        ],
+        [
+            "bucket2--collection2.zip",
+            "bucket3--collection3.zip",
+        ],
     )
 
 
-@patch("commands.build_bundles.os.walk")
-def test_sync_cloud_storage_upload_and_delete(mock_os_walk, mock_storage_client, mock_environment):
-    local_folder = "local_folder"
-    mock_os_walk.return_value = [
-        (local_folder, [], ["file1.txt", "file2.txt"]),
-    ]
-
+def test_sync_cloud_storage_upload_and_delete(mock_storage_client, mock_environment):
     bucket = mock_storage_client
 
     mock_blob1 = MagicMock()
@@ -187,14 +243,16 @@ def test_sync_cloud_storage_upload_and_delete(mock_os_walk, mock_storage_client,
     bucket.blob.side_effect = [mock_blob1, mock_blob2]
 
     mock_blob3 = MagicMock()
-    mock_blob3.name = f"{local_folder}/file3.txt"
+    mock_blob3.name = "remote/file3.txt"
     bucket.list_blobs.return_value = [mock_blob1, mock_blob2, mock_blob3]
 
-    sync_cloud_storage(local_folder, "remote-bucket")
+    sync_cloud_storage(
+        "remote-bucket", "remote", ["file1.txt", "file2.txt"], ["file3.txt", "file4.txt"]
+    )
 
     # Check uploads
-    mock_blob1.upload_from_filename.assert_called_once_with(f"{local_folder}/file1.txt")
-    mock_blob2.upload_from_filename.assert_called_once_with(f"{local_folder}/file2.txt")
+    mock_blob1.upload_from_filename.assert_called_once_with("file1.txt")
+    mock_blob2.upload_from_filename.assert_called_once_with("file2.txt")
 
     # Check deletions
     mock_blob3.delete.assert_called_once()

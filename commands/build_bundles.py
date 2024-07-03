@@ -10,6 +10,7 @@ import json
 import os
 import random
 import zipfile
+from email.utils import parsedate_to_datetime
 
 import requests
 from google.cloud import storage
@@ -50,6 +51,20 @@ def fetch_all_changesets(client):
 
 
 @retry_timeout
+def get_modified_timestamp(url):
+    """
+    Return URL modified date as epoch millisecond.
+    """
+    resp = requests.get(url)
+    if not resp.ok:
+        return None
+    dts = resp.headers["Last-Modified"]
+    dt = parsedate_to_datetime(dts)
+    epoch_msec = int(dt.timestamp() * 1000)
+    return epoch_msec
+
+
+@retry_timeout
 def fetch_attachment(url):
     print("Fetch %r" % url)
     resp = requests.get(url)
@@ -73,29 +88,27 @@ def write_zip(output_path: str, content: list[tuple[str, bytes]]):
     print("Wrote %r" % output_path)
 
 
-def sync_cloud_storage(folder, storage_bucket):
+def sync_cloud_storage(
+    storage_bucket: str, remote_folder: str, to_upload: list[str], to_delete: list[str]
+):
     """
-    Synchronizes a local folder (eg. `bundles/`) with a remote one in the specified
-    `storage_bucket` name.
+    Upload the specified `to_upload` filenames, and delete the specified `to_delete` filenames
+    from the `remote_folder` of the `storage_bucket`.
     """
     # Ensure you have set the GOOGLE_APPLICATION_CREDENTIALS environment variable
     # to the path of your Google Cloud service account key file before running this script.
     client = storage.Client()
     bucket = client.bucket(storage_bucket)
-    local_files = set()
-    for root, _, files in os.walk(folder):
-        for file in files:
-            local_file_path = os.path.join(root, file)
-            remote_file_path = os.path.join(folder, file)
+    for filename in to_upload:
+        remote_file_path = os.path.join(remote_folder, filename)
+        blob = bucket.blob(remote_file_path)
+        blob.upload_from_filename(filename)
+        print(f"Uploaded {filename} to gs://{storage_bucket}/{remote_file_path}")
 
-            blob = bucket.blob(remote_file_path)
-            blob.upload_from_filename(local_file_path)
-            print(f"Uploaded {local_file_path} to gs://{storage_bucket}/{remote_file_path}")
-            local_files.add(remote_file_path)
-
-    blobs = bucket.list_blobs(prefix=folder)
+    to_delete = {os.path.join(remote_folder, f) for f in to_delete}
+    blobs = bucket.list_blobs(prefix=remote_folder)
     for blob in blobs:
-        if blob.name not in local_files:
+        if blob.name in to_delete:
             blob.delete()
             print(f"Deleted gs://{storage_bucket}/{blob.name}")
 
@@ -104,38 +117,65 @@ def build_bundles(event, context):
     """
     Main command entry point that:
     - fetches all collections changesets
-    - builds a `bundles/changesets.zip`
+    - builds a `changesets.zip`
     - fetches attachments of all collections with bundle flag
-    - builds `bundles/{bid}--{cid}.zip` for each of them
-    - synchronizes the `bundles/` folder with a remote Cloud storage bucket
+    - builds `{bid}--{cid}.zip` for each of them
+    - send the bundles to the Cloud storage bucket
     """
     rs_server = event.get("server") or SERVER
 
     client = KintoClient(server_url=rs_server)
 
+    base_url = client.server_info()["capabilities"]["attachments"]["base_url"]
+
+    existing_bundle_timestamp = get_modified_timestamp(
+        f"{base_url}{DESTINATION_FOLDER}/changesets.zip"
+    )
+    if existing_bundle_timestamp is None:
+        print("No previous bundle found")  # Should only happen once.
+        existing_bundle_timestamp = -1
+
     all_changesets = fetch_all_changesets(client)
+    highest_timestamp = max(c["timestamp"] for c in all_changesets)
+
+    if existing_bundle_timestamp >= highest_timestamp:
+        print("Existing bundle up-to-date. Nothing to do.")
+        return
+
+    bundles_to_upload = []
+    bundles_to_delete = []
+
     write_zip(
-        f"{DESTINATION_FOLDER}/changesets.zip",
+        "changesets.zip",
         [
             ("{bucket}--{metadata[id]}.json".format(**changeset), json.dumps(changeset))
             for changeset in all_changesets
         ],
     )
-
-    base_url = client.server_info()["capabilities"]["attachments"]["base_url"]
+    bundles_to_upload.append("changesets.zip")
 
     for changeset in all_changesets:
-        if not BUILD_ALL and not changeset["metadata"].get("attachment", {}).get("bundle", False):
-            # Bundling not enabled.
+        bid = changeset["bucket"]
+        cid = changeset["metadata"]["id"]
+        should_bundle = changeset["metadata"].get("attachment", {}).get("bundle", False)
+        attachments_bundle_filename = f"{bid}--{cid}.zip"
+
+        if not should_bundle:
+            bundles_to_delete.append(attachments_bundle_filename)
+            if not BUILD_ALL:
+                continue
+
+        if not BUILD_ALL and changeset["timestamp"] < existing_bundle_timestamp:
+            # Collection hasn't changed since last bundling.
             continue
 
         # Skip bundle if no attachments found.
-        bid = changeset["bucket"]
-        cid = changeset["metadata"]["id"]
         records = [r for r in changeset["changes"] if "attachment" in r]
         if not records:
             print("%s/%s has no attachments" % (bid, cid))
+            bundles_to_delete.append(attachments_bundle_filename)
             continue
+
         print("%s/%s: %s records with attachments" % (bid, cid, len(records)))
 
         # Skip bundle if total size is too big.
@@ -150,10 +190,13 @@ def build_bundles(event, context):
         args_list = [(f'{base_url}{r["attachment"]["location"]}',) for r in records]
         all_attachments = call_parallel(fetch_attachment, args_list, REQUESTS_PARALLEL_COUNT)
         write_zip(
-            f"{DESTINATION_FOLDER}/{bid}--{cid}.zip",
+            attachments_bundle_filename,
             [(f'{record["id"]}.meta.json', json.dumps(record)) for record in records]
             + [(record["id"], attachment) for record, attachment in zip(records, all_attachments)],
         )
+        bundles_to_upload.append(attachments_bundle_filename)
 
     if not SKIP_UPLOAD:
-        sync_cloud_storage(DESTINATION_FOLDER, STORAGE_BUCKET_NAME)
+        sync_cloud_storage(
+            STORAGE_BUCKET_NAME, DESTINATION_FOLDER, bundles_to_upload, bundles_to_delete
+        )
