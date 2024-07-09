@@ -77,9 +77,6 @@ def write_zip(output_path: str, content: list[tuple[str, bytes]]):
     Write a Zip at the specified `output_path` location with the specified `content`.
     The content is specified as a list of file names and their binary content.
     """
-    parent_folder = os.path.dirname(output_path)
-    os.makedirs(parent_folder, exist_ok=True)
-
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for filename, filecontent in content:
