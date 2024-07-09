@@ -9,6 +9,7 @@ import io
 import json
 import os
 import random
+import tempfile
 import zipfile
 from email.utils import parsedate_to_datetime
 
@@ -141,6 +142,10 @@ def build_bundles(event, context):
     if existing_bundle_timestamp >= highest_timestamp:
         print("Existing bundle up-to-date. Nothing to do.")
         return
+
+    # Build all archives in temp directory.
+    tmp_dir = tempfile.mkdtemp()
+    os.chdir(tmp_dir)
 
     bundles_to_upload = []
     bundles_to_delete = []
