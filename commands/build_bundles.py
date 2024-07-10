@@ -24,7 +24,9 @@ REQUESTS_PARALLEL_COUNT = int(os.getenv("REQUESTS_PARALLEL_COUNT", "8"))
 BUNDLE_MAX_SIZE_BYTES = int(os.getenv("BUNDLE_MAX_SIZE_BYTES", "20_000_000"))
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
 REALM = os.getenv("REALM", "test")
-STORAGE_BUCKET_NAME = os.getenv("STORAGE_BUCKET_NAME", f"remote-settings-{REALM}-{ENVIRONMENT}-attachments")
+STORAGE_BUCKET_NAME = os.getenv(
+    "STORAGE_BUCKET_NAME", f"remote-settings-{REALM}-{ENVIRONMENT}-attachments"
+)
 DESTINATION_FOLDER = os.getenv("DESTINATION_FOLDER", "bundles")
 # Flags for local development
 BUILD_ALL = os.getenv("BUILD_ALL", "0") in "1yY"
