@@ -73,7 +73,7 @@ def records_equal(a, b):
     return ra == rb
 
 
-def call_parallel(func, args_list, max_workers=4):
+def call_parallel(func, args_list, max_workers=PARALLEL_REQUESTS):
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(func, *args) for args in args_list]

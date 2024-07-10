@@ -20,7 +20,6 @@ from . import KintoClient, call_parallel, retry_timeout
 
 
 SERVER = os.getenv("SERVER")
-REQUESTS_PARALLEL_COUNT = int(os.getenv("REQUESTS_PARALLEL_COUNT", "8"))
 BUNDLE_MAX_SIZE_BYTES = int(os.getenv("BUNDLE_MAX_SIZE_BYTES", "20_000_000"))
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
 REALM = os.getenv("REALM", "test")
@@ -48,7 +47,7 @@ def fetch_all_changesets(client):
         (c["bucket"], c["collection"], c["last_modified"]) for c in monitor_changeset["changes"]
     ]
     all_changesets = call_parallel(
-        lambda bid, cid, ts: client.get_changeset(bid, cid, ts), args_list, REQUESTS_PARALLEL_COUNT
+        lambda bid, cid, ts: client.get_changeset(bid, cid, ts), args_list
     )
     return [
         {"bucket": bid, **changeset} for (bid, _, _), changeset in zip(args_list, all_changesets)
@@ -194,7 +193,7 @@ def build_bundles(event, context):
 
         # Fetch all attachments and build "{bid}--{cid}.zip"
         args_list = [(f'{base_url}{r["attachment"]["location"]}',) for r in records]
-        all_attachments = call_parallel(fetch_attachment, args_list, REQUESTS_PARALLEL_COUNT)
+        all_attachments = call_parallel(fetch_attachment, args_list)
         write_zip(
             attachments_bundle_filename,
             [(f'{record["id"]}.meta.json', json.dumps(record)) for record in records]
