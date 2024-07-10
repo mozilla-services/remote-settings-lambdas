@@ -222,7 +222,7 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
     assert attachments_zip_files[1][1] == b"jpeg_content"
 
     mock_sync_cloud_storage.assert_called_once_with(
-        "remote-settings-nonprod-stage-attachments",
+        "remote-settings-test-local-attachments",
         "bundles",
         [
             "changesets.zip",
