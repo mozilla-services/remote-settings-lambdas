@@ -159,6 +159,18 @@ def build_bundles(event, context):
     )
     bundles_to_upload.append("changesets.zip")
 
+    # Build a bundle for collections that are marked with "startup" flag.
+    write_zip(
+        "startup.zip",
+        [
+            ("{bucket}--{metadata[id]}.json".format(**changeset), json.dumps(changeset))
+            for changeset in all_changesets
+            if "startup" in changeset["metadata"].get("flags", [])
+        ],
+    )
+    bundles_to_upload.append("startup.zip")
+
+    # Build attachments bundle for collections which have the option set.
     for changeset in all_changesets:
         bid = changeset["bucket"]
         cid = changeset["metadata"]["id"]
