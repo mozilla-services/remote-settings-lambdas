@@ -197,24 +197,40 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
             "metadata": {"id": "collection4", "attachment": {"bundle": True}},
             "timestamp": 1720004688000 + 10,
         },
+        {  # collection with startup flag
+            "bucket": "bucket5",
+            "changes": [{"id": "record5"}],
+            "metadata": {"id": "collection5", "flags": ["startup"]},
+            "timestamp": 1720004688000 + 10,
+        },
     ]
 
     build_bundles(event, context={})
 
-    assert mock_write_zip.call_count == 2  # One for changesets and only one for the attachments
+    assert (
+        mock_write_zip.call_count == 3
+    )  # changesets.zip, startup.zip, and only one for the attachments
     calls = mock_write_zip.call_args_list
 
     # Assert the first call (changesets.zip)
     changesets_zip_path, changesets_zip_files = calls[0][0]
     assert changesets_zip_path == "changesets.zip"
-    assert len(changesets_zip_files) == 5
+    assert len(changesets_zip_files) == 6
     assert changesets_zip_files[0][0] == "bucket0--collection0.json"
     assert changesets_zip_files[1][0] == "bucket1--collection1.json"
     assert changesets_zip_files[2][0] == "bucket2--collection2.json"
     assert changesets_zip_files[3][0] == "bucket3--collection3.json"
+    assert changesets_zip_files[4][0] == "bucket4--collection4.json"
+    assert changesets_zip_files[5][0] == "bucket5--collection5.json"
 
-    # Assert the second call (attachments zip)
-    attachments_zip_path, attachments_zip_files = calls[1][0]
+    # Assert the second call (startup.zip)
+    startup_zip_path, startup_zip_files = calls[1][0]
+    assert startup_zip_path == "startup.zip"
+    assert len(startup_zip_files) == 1
+    assert startup_zip_files[0][0] == "bucket5--collection5.json"
+
+    # Assert the third call (attachments zip)
+    attachments_zip_path, attachments_zip_files = calls[2][0]
     assert attachments_zip_path == "bucket1--collection1.zip"
     assert len(attachments_zip_files) == 2
     assert attachments_zip_files[0][0] == "record1.meta.json"
@@ -226,11 +242,13 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
         "bundles",
         [
             "changesets.zip",
+            "startup.zip",
             "bucket1--collection1.zip",
         ],
         [
             "bucket2--collection2.zip",
             "bucket3--collection3.zip",
+            "bucket5--collection5.zip",
         ],
     )
 
