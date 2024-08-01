@@ -49,9 +49,7 @@ def fetch_all_changesets(client):
     all_changesets = call_parallel(
         lambda bid, cid, ts: client.get_changeset(bid, cid, ts), args_list
     )
-    return [
-        {"bucket": bid, **changeset} for (bid, _, _), changeset in zip(args_list, all_changesets)
-    ]
+    return all_changesets
 
 
 @retry_timeout
@@ -153,7 +151,7 @@ def build_bundles(event, context):
     write_zip(
         "changesets.zip",
         [
-            ("{bucket}--{metadata[id]}.json".format(**changeset), json.dumps(changeset))
+            ("{metadata[bucket]}--{metadata[id]}.json".format(**changeset), json.dumps(changeset))
             for changeset in all_changesets
         ],
     )
@@ -163,7 +161,7 @@ def build_bundles(event, context):
     write_zip(
         "startup.zip",
         [
-            ("{bucket}--{metadata[id]}.json".format(**changeset), json.dumps(changeset))
+            ("{metadata[bucket]}--{metadata[id]}.json".format(**changeset), json.dumps(changeset))
             for changeset in all_changesets
             if "startup" in changeset["metadata"].get("flags", [])
         ],
@@ -172,7 +170,7 @@ def build_bundles(event, context):
 
     # Build attachments bundle for collections which have the option set.
     for changeset in all_changesets:
-        bid = changeset["bucket"]
+        bid = changeset["metadata"]["bucket"]
         cid = changeset["metadata"]["id"]
         should_bundle = changeset["metadata"].get("attachment", {}).get("bundle", False)
         attachments_bundle_filename = f"{bid}--{cid}.zip"
