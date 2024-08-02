@@ -77,21 +77,21 @@ def test_fetch_all_changesets(mock_random):
     responses.add(
         responses.GET,
         changeset_url.format(bid="bucket1", cid="collection1", expected=123),
-        json={"metadata": {"id": "collection1"}, "changes": [{"id": "abc"}]},
+        json={"metadata": {"id": "collection1", "bucket": "bucket1"}, "changes": [{"id": "abc"}]},
     )
     responses.add(
         responses.GET,
         changeset_url.format(bid="bucket2", cid="collection2", expected=456),
-        json={"metadata": {"id": "collection2"}, "changes": [{"id": "edf"}]},
+        json={"metadata": {"id": "collection2", "bucket": "bucket2"}, "changes": [{"id": "edf"}]},
     )
 
     client = KintoClient(server_url="http://example.com/v1")
 
     changesets = fetch_all_changesets(client)
     assert len(changesets) == 2
-    assert changesets[0]["bucket"] == "bucket1"
+    assert changesets[0]["metadata"]["bucket"] == "bucket1"
     assert changesets[0]["metadata"]["id"] == "collection1"
-    assert changesets[1]["bucket"] == "bucket2"
+    assert changesets[1]["metadata"]["bucket"] == "bucket2"
     assert changesets[1]["metadata"]["id"] == "collection2"
 
 
@@ -158,49 +158,46 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
 
     mock_fetch_all_changesets.return_value = [
         {  # collection hasn't changed since last bundling
-            "bucket": "bucket0",
             "changes": [
                 {"id": "record1", "attachment": {"location": "file.jpg", "size": 10}},
                 {"id": "record2"},
             ],
-            "metadata": {"id": "collection0", "attachment": {"bundle": True}},
+            "metadata": {"id": "collection0", "bucket": "bucket0", "attachment": {"bundle": True}},
             "timestamp": 1720004688000 - 10,
         },
         {
-            "bucket": "bucket1",
             "changes": [
                 {"id": "record1", "attachment": {"location": "file.jpg", "size": 10}},
                 {"id": "record2"},
             ],
-            "metadata": {"id": "collection1", "attachment": {"bundle": True}},
+            "metadata": {"id": "collection1", "bucket": "bucket1", "attachment": {"bundle": True}},
             "timestamp": 1720004688000 + 10,
         },
         {  # collection without bundle flag
-            "bucket": "bucket2",
             "changes": [{"id": "record2"}],
-            "metadata": {"id": "collection2"},
+            "metadata": {
+                "id": "collection2",
+                "bucket": "bucket2",
+            },
             "timestamp": 1720004688000 + 10,
         },
         {  # collection without attachments
-            "bucket": "bucket3",
             "changes": [{"id": "record3"}],
-            "metadata": {"id": "collection3", "attachment": {"bundle": True}},
+            "metadata": {"id": "collection3", "bucket": "bucket3", "attachment": {"bundle": True}},
             "timestamp": 1720004688000 + 10,
         },
         {  # attachments too big
-            "bucket": "bucket4",
             "changes": [
                 {"id": "id1", "attachment": {"size": 10_000_000}},
                 {"id": "id2", "attachment": {"size": 10_000_000}},
                 {"id": "id3", "attachment": {"size": 10_000_000}},
             ],
-            "metadata": {"id": "collection4", "attachment": {"bundle": True}},
+            "metadata": {"id": "collection4", "bucket": "bucket4", "attachment": {"bundle": True}},
             "timestamp": 1720004688000 + 10,
         },
         {  # collection with startup flag
-            "bucket": "bucket5",
             "changes": [{"id": "record5"}],
-            "metadata": {"id": "collection5", "flags": ["startup"]},
+            "metadata": {"id": "collection5", "bucket": "bucket5", "flags": ["startup"]},
             "timestamp": 1720004688000 + 10,
         },
     ]
