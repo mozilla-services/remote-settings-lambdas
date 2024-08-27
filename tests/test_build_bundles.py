@@ -148,13 +148,14 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
     )
     responses.add(responses.GET, f"{server_url}/attachments/file.jpg", body=b"jpeg_content")
 
-    responses.add(
-        responses.GET,
-        f"{server_url}/attachments/bundles/changesets.zip",
-        headers={
-            "Last-Modified": "Wed, 03 Jul 2024 11:04:48 GMT"  # 1720004688000
-        },
-    )
+    for bundle in ["changesets", "startup"] + [f"bucket{i}--collection{i}" for i in range(5)]:
+        responses.add(
+            responses.GET,
+            f"{server_url}/attachments/bundles/{bundle}.zip",
+            headers={
+                "Last-Modified": "Wed, 03 Jul 2024 11:04:48 GMT"  # 1720004688000
+            },
+        )
 
     mock_fetch_all_changesets.return_value = [
         {  # collection hasn't changed since last bundling
@@ -167,7 +168,7 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
         },
         {
             "changes": [
-                {"id": "record1", "attachment": {"location": "file.jpg", "size": 10}},
+                {"id": "record1", "attachment": {"location": "file.jpg", "size": 10000000}},
                 {"id": "record2"},
             ],
             "metadata": {"id": "collection1", "bucket": "bucket1", "attachment": {"bundle": True}},
@@ -209,8 +210,16 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
     )  # changesets.zip, startup.zip, and only one for the attachments
     calls = mock_write_zip.call_args_list
 
-    # Assert the first call (changesets.zip)
-    changesets_zip_path, changesets_zip_files = calls[0][0]
+    # Assert the first call (attachments zip)
+    attachments_zip_path, attachments_zip_files = calls[0][0]
+    assert attachments_zip_path == "bucket1--collection1.zip"
+    assert len(attachments_zip_files) == 2
+    assert attachments_zip_files[0][0] == "record1.meta.json"
+    assert attachments_zip_files[1][0] == "record1"
+    assert attachments_zip_files[1][1] == b"jpeg_content"
+
+    # Assert the second call (changesets.zip)
+    changesets_zip_path, changesets_zip_files = calls[1][0]
     assert changesets_zip_path == "changesets.zip"
     assert len(changesets_zip_files) == 6
     assert changesets_zip_files[0][0] == "bucket0--collection0.json"
@@ -220,27 +229,19 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
     assert changesets_zip_files[4][0] == "bucket4--collection4.json"
     assert changesets_zip_files[5][0] == "bucket5--collection5.json"
 
-    # Assert the second call (startup.zip)
-    startup_zip_path, startup_zip_files = calls[1][0]
+    # Assert the third call (startup.zip)
+    startup_zip_path, startup_zip_files = calls[2][0]
     assert startup_zip_path == "startup.zip"
     assert len(startup_zip_files) == 1
     assert startup_zip_files[0][0] == "bucket5--collection5.json"
-
-    # Assert the third call (attachments zip)
-    attachments_zip_path, attachments_zip_files = calls[2][0]
-    assert attachments_zip_path == "bucket1--collection1.zip"
-    assert len(attachments_zip_files) == 2
-    assert attachments_zip_files[0][0] == "record1.meta.json"
-    assert attachments_zip_files[1][0] == "record1"
-    assert attachments_zip_files[1][1] == b"jpeg_content"
 
     mock_sync_cloud_storage.assert_called_once_with(
         "remote-settings-test-local-attachments",
         "bundles",
         [
+            "bucket1--collection1.zip",
             "changesets.zip",
             "startup.zip",
-            "bucket1--collection1.zip",
         ],
         [
             "bucket2--collection2.zip",

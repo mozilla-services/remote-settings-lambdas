@@ -127,19 +127,7 @@ def build_bundles(event, context):
 
     base_url = client.server_info()["capabilities"]["attachments"]["base_url"]
 
-    existing_bundle_timestamp = get_modified_timestamp(
-        f"{base_url}{DESTINATION_FOLDER}/changesets.zip"
-    )
-    if existing_bundle_timestamp is None:
-        print("No previous bundle found")  # Should only happen once.
-        existing_bundle_timestamp = -1
-
     all_changesets = fetch_all_changesets(client)
-    highest_timestamp = max(c["timestamp"] for c in all_changesets)
-
-    if existing_bundle_timestamp >= highest_timestamp:
-        print("Existing bundle up-to-date. Nothing to do.")
-        return
 
     # Build all archives in temp directory.
     tmp_dir = tempfile.mkdtemp()
@@ -147,26 +135,6 @@ def build_bundles(event, context):
 
     bundles_to_upload = []
     bundles_to_delete = []
-
-    write_zip(
-        "changesets.zip",
-        [
-            ("{metadata[bucket]}--{metadata[id]}.json".format(**changeset), json.dumps(changeset))
-            for changeset in all_changesets
-        ],
-    )
-    bundles_to_upload.append("changesets.zip")
-
-    # Build a bundle for collections that are marked with "startup" flag.
-    write_zip(
-        "startup.zip",
-        [
-            ("{metadata[bucket]}--{metadata[id]}.json".format(**changeset), json.dumps(changeset))
-            for changeset in all_changesets
-            if "startup" in changeset["metadata"].get("flags", [])
-        ],
-    )
-    bundles_to_upload.append("startup.zip")
 
     # Build attachments bundle for collections which have the option set.
     for changeset in all_changesets:
@@ -179,19 +147,27 @@ def build_bundles(event, context):
             bundles_to_delete.append(attachments_bundle_filename)
             if not BUILD_ALL:
                 continue
+        else:
+            print(f"{bid}/{cid} has attachments bundles enabled")
 
+        existing_bundle_timestamp = get_modified_timestamp(
+            f"{base_url}{DESTINATION_FOLDER}/{bid}--{cid}.zip"
+        )
+        print(f"'{bid}--{cid}.zip' was modified at {existing_bundle_timestamp}")
+        print(f"Latest change on {bid}/{cid} was at {changeset["timestamp"]}")
         if not BUILD_ALL and changeset["timestamp"] < existing_bundle_timestamp:
             # Collection hasn't changed since last bundling.
+            print(f"{bid}/{cid} hasn't changed since last bundle.")
             continue
 
         # Skip bundle if no attachments found.
         records = [r for r in changeset["changes"] if "attachment" in r]
         if not records:
-            print("%s/%s has no attachments" % (bid, cid))
+            print(f"{bid}/{cid} has no attachments")
             bundles_to_delete.append(attachments_bundle_filename)
             continue
 
-        print("%s/%s: %s records with attachments" % (bid, cid, len(records)))
+        print(f"{bid}/{cid} {len(records)} records with attachments")
 
         # Skip bundle if total size is too big.
         total_size_bytes = sum(r["attachment"]["size"] for r in records)
@@ -210,6 +186,55 @@ def build_bundles(event, context):
             + [(record["id"], attachment) for record, attachment in zip(records, all_attachments)],
         )
         bundles_to_upload.append(attachments_bundle_filename)
+
+    highest_timestamp = max(c["timestamp"] for c in all_changesets)
+    print(f"Latest server change was at {highest_timestamp}")
+
+    existing_bundle_timestamp = get_modified_timestamp(
+        f"{base_url}{DESTINATION_FOLDER}/changesets.zip"
+    )
+    if existing_bundle_timestamp is None:
+        print("No previous 'changesets.zip' bundle found")  # Should only happen once.
+        existing_bundle_timestamp = -1
+    print(f"'changesets.zip' was published at {existing_bundle_timestamp}")
+    if BUILD_ALL or (existing_bundle_timestamp < highest_timestamp):
+        write_zip(
+            "changesets.zip",
+            [
+                (
+                    "{metadata[bucket]}--{metadata[id]}.json".format(**changeset),
+                    json.dumps(changeset),
+                )
+                for changeset in all_changesets
+            ],
+        )
+        bundles_to_upload.append("changesets.zip")
+    else:
+        print("Existing 'changesets.zip' bundle up-to-date. Nothing to do.")
+
+    # Build a bundle for collections that are marked with "startup" flag.
+    existing_bundle_timestamp = get_modified_timestamp(
+        f"{base_url}{DESTINATION_FOLDER}/startup.zip"
+    )
+    if existing_bundle_timestamp is None:
+        print("No previous 'startup.zip' bundle found")  # Should only happen once.
+        existing_bundle_timestamp = -1
+    print(f"'startup.zip' was published at {existing_bundle_timestamp}")
+    if BUILD_ALL or existing_bundle_timestamp < highest_timestamp:
+        write_zip(
+            "startup.zip",
+            [
+                (
+                    "{metadata[bucket]}--{metadata[id]}.json".format(**changeset),
+                    json.dumps(changeset),
+                )
+                for changeset in all_changesets
+                if "startup" in changeset["metadata"].get("flags", [])
+            ],
+        )
+        bundles_to_upload.append("startup.zip")
+    else:
+        print("Existing 'startup.zip' bundle up-to-date. Nothing to do.")
 
     if not SKIP_UPLOAD:
         sync_cloud_storage(
