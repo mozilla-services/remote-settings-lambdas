@@ -122,7 +122,7 @@ def test_get_modified_timestamp_missing():
     url = "http://example.com/file"
     responses.add(responses.GET, url, status=404)
     timestamp = get_modified_timestamp(url)
-    assert timestamp is None
+    assert timestamp == -1
 
 
 def test_write_zip(tmpdir):
@@ -201,7 +201,17 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
             "metadata": {"id": "collection5", "bucket": "bucket5", "flags": ["startup"]},
             "timestamp": 1720004688000 + 10,
         },
+        {  # collection newly marked as bundled
+            "changes": [{"id": "record5"}],
+            "metadata": {"id": "collection6", "bucket": "bucket6", "attachment": {"bundle": True}},
+            "timestamp": 1720004688000 + 10,
+        },
     ]
+    responses.add(
+        responses.GET,
+        f"{server_url}/attachments/bundles/bucket6--collection6.zip",
+        status=404,
+    )
 
     build_bundles(event, context={})
 
@@ -221,7 +231,7 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
     # Assert the second call (changesets.zip)
     changesets_zip_path, changesets_zip_files = calls[1][0]
     assert changesets_zip_path == "changesets.zip"
-    assert len(changesets_zip_files) == 6
+    assert len(changesets_zip_files) == 7
     assert changesets_zip_files[0][0] == "bucket0--collection0.json"
     assert changesets_zip_files[1][0] == "bucket1--collection1.json"
     assert changesets_zip_files[2][0] == "bucket2--collection2.json"
@@ -247,6 +257,7 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
             "bucket2--collection2.zip",
             "bucket3--collection3.zip",
             "bucket5--collection5.zip",
+            "bucket6--collection6.zip",
         ],
     )
 
