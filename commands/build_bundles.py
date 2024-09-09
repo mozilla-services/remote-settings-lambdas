@@ -53,13 +53,15 @@ def fetch_all_changesets(client):
 
 
 @retry_timeout
-def get_modified_timestamp(url):
+def get_modified_timestamp(url) -> int:
     """
     Return URL modified date as epoch millisecond.
     """
     resp = requests.get(url)
     if not resp.ok:
-        return None
+        filename = url.split("/")[-1]
+        print(f"No previous '{filename}' bundle found")  # happens on first run.
+        return -1
     dts = resp.headers["Last-Modified"]
     dt = parsedate_to_datetime(dts)
     epoch_msec = int(dt.timestamp() * 1000)
@@ -193,9 +195,6 @@ def build_bundles(event, context):
     existing_bundle_timestamp = get_modified_timestamp(
         f"{base_url}{DESTINATION_FOLDER}/changesets.zip"
     )
-    if existing_bundle_timestamp is None:
-        print("No previous 'changesets.zip' bundle found")  # Should only happen once.
-        existing_bundle_timestamp = -1
     print(f"'changesets.zip' was published at {existing_bundle_timestamp}")
     if BUILD_ALL or (existing_bundle_timestamp < highest_timestamp):
         write_zip(
@@ -216,9 +215,6 @@ def build_bundles(event, context):
     existing_bundle_timestamp = get_modified_timestamp(
         f"{base_url}{DESTINATION_FOLDER}/startup.zip"
     )
-    if existing_bundle_timestamp is None:
-        print("No previous 'startup.zip' bundle found")  # Should only happen once.
-        existing_bundle_timestamp = -1
     print(f"'startup.zip' was published at {existing_bundle_timestamp}")
     if BUILD_ALL or existing_bundle_timestamp < highest_timestamp:
         write_zip(
