@@ -201,6 +201,11 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
             "metadata": {"id": "collection5", "bucket": "bucket5", "flags": ["startup"]},
             "timestamp": 1720004688000 + 10,
         },
+        {  # collection with startup flag but preview bucket
+            "changes": [{"id": "record5"}],
+            "metadata": {"id": "collection5", "bucket": "preview-bucket5", "flags": ["startup"]},
+            "timestamp": 1720004688000 + 10,
+        },
         {  # collection newly marked as bundled
             "changes": [{"id": "record5"}],
             "metadata": {"id": "collection6", "bucket": "bucket6", "attachment": {"bundle": True}},
@@ -231,13 +236,14 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
     # Assert the second call (changesets.zip)
     changesets_zip_path, changesets_zip_files = calls[1][0]
     assert changesets_zip_path == "changesets.zip"
-    assert len(changesets_zip_files) == 7
+    assert len(changesets_zip_files) == 8
     assert changesets_zip_files[0][0] == "bucket0--collection0.json"
     assert changesets_zip_files[1][0] == "bucket1--collection1.json"
     assert changesets_zip_files[2][0] == "bucket2--collection2.json"
     assert changesets_zip_files[3][0] == "bucket3--collection3.json"
     assert changesets_zip_files[4][0] == "bucket4--collection4.json"
     assert changesets_zip_files[5][0] == "bucket5--collection5.json"
+    assert changesets_zip_files[6][0] == "preview-bucket5--collection5.json"
 
     # Assert the third call (startup.zip)
     startup_zip_path, startup_zip_files = calls[2][0]
@@ -257,6 +263,7 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
             "bucket2--collection2.zip",
             "bucket3--collection3.zip",
             "bucket5--collection5.zip",
+            "preview-bucket5--collection5.zip",
             "bucket6--collection6.zip",
         ],
     )
