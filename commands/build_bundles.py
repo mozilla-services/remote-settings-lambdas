@@ -226,6 +226,7 @@ def build_bundles(event, context):
                 )
                 for changeset in all_changesets
                 if "startup" in changeset["metadata"].get("flags", [])
+                and "preview" not in changeset["metadata"]["bucket"]
             ],
         )
         bundles_to_upload.append("startup.zip")
