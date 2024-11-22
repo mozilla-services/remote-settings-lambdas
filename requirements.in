@@ -4,3 +4,4 @@ kinto-http
 requests
 sentry_sdk
 google-cloud-storage
+lz4
