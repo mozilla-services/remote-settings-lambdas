@@ -30,6 +30,12 @@ def mock_write_zip():
 
 
 @pytest.fixture
+def mock_write_json_mozlz4():
+    with patch("commands.build_bundles.write_json_mozlz4") as mock_write:
+        yield mock_write
+
+
+@pytest.fixture
 def mock_sync_cloud_storage():
     with patch("commands.build_bundles.sync_cloud_storage") as mock_sync_cloud_storage:
         yield mock_sync_cloud_storage
@@ -137,7 +143,9 @@ def test_write_zip(tmpdir):
 
 
 @responses.activate
-def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_cloud_storage):
+def test_build_bundles(
+    mock_fetch_all_changesets, mock_write_zip, mock_write_json_mozlz4, mock_sync_cloud_storage
+):
     server_url = "http://testserver"
     event = {"server": server_url}
 
@@ -148,10 +156,12 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
     )
     responses.add(responses.GET, f"{server_url}/attachments/file.jpg", body=b"jpeg_content")
 
-    for bundle in ["changesets", "startup"] + [f"bucket{i}--collection{i}" for i in range(5)]:
+    for bundle in ["changesets.zip", "startup.json.mozlz4"] + [
+        f"bucket{i}--collection{i}.zip" for i in range(5)
+    ]:
         responses.add(
             responses.GET,
-            f"{server_url}/attachments/bundles/{bundle}.zip",
+            f"{server_url}/attachments/bundles/{bundle}",
             headers={
                 "Last-Modified": "Wed, 03 Jul 2024 11:04:48 GMT"  # 1720004688000
             },
@@ -220,9 +230,7 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
 
     build_bundles(event, context={})
 
-    assert (
-        mock_write_zip.call_count == 3
-    )  # changesets.zip, startup.zip, and only one for the attachments
+    assert mock_write_zip.call_count == 2  # changesets.zip, and only one for the attachments
     calls = mock_write_zip.call_args_list
 
     # Assert the first call (attachments zip)
@@ -245,11 +253,15 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
     assert changesets_zip_files[5][0] == "bucket5--collection5.json"
     assert changesets_zip_files[6][0] == "preview-bucket5--collection5.json"
 
-    # Assert the third call (startup.zip)
-    startup_zip_path, startup_zip_files = calls[2][0]
-    assert startup_zip_path == "startup.zip"
-    assert len(startup_zip_files) == 1
-    assert startup_zip_files[0][0] == "bucket5--collection5.json"
+    # Assert the mozlz4 call
+    assert mock_write_json_mozlz4.call_count == 1  # startup.json.mozlz
+    calls = mock_write_json_mozlz4.call_args_list
+
+    startup_mozlz4_path, startup_changesets = calls[0][0]
+    assert startup_mozlz4_path == "startup.json.mozlz4"
+    assert len(startup_changesets) == 1
+    assert startup_changesets[0]["metadata"]["bucket"] == "bucket5"
+    assert startup_changesets[0]["metadata"]["id"] == "collection5"
 
     mock_sync_cloud_storage.assert_called_once_with(
         "remote-settings-test-local-attachments",
@@ -257,7 +269,7 @@ def test_build_bundles(mock_fetch_all_changesets, mock_write_zip, mock_sync_clou
         [
             "bucket1--collection1.zip",
             "changesets.zip",
-            "startup.zip",
+            "startup.json.mozlz4",
         ],
         [
             "bucket2--collection2.zip",

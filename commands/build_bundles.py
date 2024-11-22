@@ -13,6 +13,7 @@ import tempfile
 import zipfile
 from email.utils import parsedate_to_datetime
 
+import lz4.block
 import requests
 from google.cloud import storage
 
@@ -89,6 +90,23 @@ def write_zip(output_path: str, content: list[tuple[str, bytes]]):
     print("Wrote %r" % output_path)
 
 
+def write_json_mozlz4(output_path: str, changesets):
+    """
+    Write a UTF-8 text file compressed as LZ4.
+    The goal of this is allow clients like Firefox read and uncompress the data off the main
+    thread using ``IOUtils.readUTF8(data, {compress: true})``.
+
+    There is an open bug to use standard LZ4 (without magic number)
+    https://bugzilla.mozilla.org/show_bug.cgi?id=1209390
+    """
+    header_magic_number = b"mozLz40\x00"
+    json_str = json.dumps(changesets).encode("utf-8")
+    compressed = lz4.block.compress(json_str)
+    with open(output_path, "wb") as f:
+        f.write(header_magic_number + compressed)
+    print("Wrote %r" % output_path)
+
+
 def sync_cloud_storage(
     storage_bucket: str, remote_folder: str, to_upload: list[str], to_delete: list[str]
 ):
@@ -119,6 +137,7 @@ def build_bundles(event, context):
     Main command entry point that:
     - fetches all collections changesets
     - builds a `changesets.zip`
+    - builds a `startup.json.mozlz4`
     - fetches attachments of all collections with bundle flag
     - builds `{bid}--{cid}.zip` for each of them
     - send the bundles to the Cloud storage bucket
@@ -212,26 +231,24 @@ def build_bundles(event, context):
         print("Existing 'changesets.zip' bundle up-to-date. Nothing to do.")
 
     # Build a bundle for collections that are marked with "startup" flag.
+    startup_file = "startup.json.mozlz4"
     existing_bundle_timestamp = get_modified_timestamp(
-        f"{base_url}{DESTINATION_FOLDER}/startup.zip"
+        f"{base_url}{DESTINATION_FOLDER}/{startup_file}"
     )
-    print(f"'startup.zip' was published at {existing_bundle_timestamp}")
+    print(f"{startup_file!r} was published at {existing_bundle_timestamp}")
     if BUILD_ALL or existing_bundle_timestamp < highest_timestamp:
-        write_zip(
-            "startup.zip",
+        write_json_mozlz4(
+            startup_file,
             [
-                (
-                    "{metadata[bucket]}--{metadata[id]}.json".format(**changeset),
-                    json.dumps(changeset),
-                )
+                changeset
                 for changeset in all_changesets
                 if "startup" in changeset["metadata"].get("flags", [])
                 and "preview" not in changeset["metadata"]["bucket"]
             ],
         )
-        bundles_to_upload.append("startup.zip")
+        bundles_to_upload.append(startup_file)
     else:
-        print("Existing 'startup.zip' bundle up-to-date. Nothing to do.")
+        print(f"Existing {startup_file!r} bundle up-to-date. Nothing to do.")
 
     if not SKIP_UPLOAD:
         sync_cloud_storage(
