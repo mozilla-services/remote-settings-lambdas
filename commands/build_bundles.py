@@ -136,7 +136,7 @@ def build_bundles(event, context):
     """
     Main command entry point that:
     - fetches all collections changesets
-    - builds a `changesets.zip`
+    - builds a `changesets.json.mozlz4`
     - builds a `startup.json.mozlz4`
     - fetches attachments of all collections with bundle flag
     - builds `{bid}--{cid}.zip` for each of them
@@ -212,23 +212,21 @@ def build_bundles(event, context):
     print(f"Latest server change was at {highest_timestamp}")
 
     existing_bundle_timestamp = get_modified_timestamp(
-        f"{base_url}{DESTINATION_FOLDER}/changesets.zip"
+        f"{base_url}{DESTINATION_FOLDER}/changesets.json.mozlz4"
     )
-    print(f"'changesets.zip' was published at {existing_bundle_timestamp}")
+    print(f"'changesets.json.mozlz4' was published at {existing_bundle_timestamp}")
     if BUILD_ALL or (existing_bundle_timestamp < highest_timestamp):
-        write_zip(
-            "changesets.zip",
+        write_json_mozlz4(
+            "changesets.json.mozlz4",
             [
-                (
-                    "{metadata[bucket]}--{metadata[id]}.json".format(**changeset),
-                    json.dumps(changeset),
-                )
+                changeset
                 for changeset in all_changesets
+                if "preview" not in changeset["metadata"]["bucket"]
             ],
         )
-        bundles_to_upload.append("changesets.zip")
+        bundles_to_upload.append("changesets.json.mozlz4")
     else:
-        print("Existing 'changesets.zip' bundle up-to-date. Nothing to do.")
+        print("Existing 'changesets.json.mozlz4' bundle up-to-date. Nothing to do.")
 
     # Build a bundle for collections that are marked with "startup" flag.
     startup_file = "startup.json.mozlz4"
