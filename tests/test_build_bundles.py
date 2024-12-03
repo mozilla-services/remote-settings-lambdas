@@ -156,7 +156,7 @@ def test_build_bundles(
     )
     responses.add(responses.GET, f"{server_url}/attachments/file.jpg", body=b"jpeg_content")
 
-    for bundle in ["changesets.zip", "startup.json.mozlz4"] + [
+    for bundle in ["changesets.json.mozlz4", "startup.json.mozlz4"] + [
         f"bucket{i}--collection{i}.zip" for i in range(5)
     ]:
         responses.add(
@@ -230,7 +230,7 @@ def test_build_bundles(
 
     build_bundles(event, context={})
 
-    assert mock_write_zip.call_count == 2  # changesets.zip, and only one for the attachments
+    assert mock_write_zip.call_count == 1  # only one for the attachments
     calls = mock_write_zip.call_args_list
 
     # Assert the first call (attachments zip)
@@ -241,23 +241,19 @@ def test_build_bundles(
     assert attachments_zip_files[1][0] == "record1"
     assert attachments_zip_files[1][1] == b"jpeg_content"
 
-    # Assert the second call (changesets.zip)
-    changesets_zip_path, changesets_zip_files = calls[1][0]
-    assert changesets_zip_path == "changesets.zip"
-    assert len(changesets_zip_files) == 8
-    assert changesets_zip_files[0][0] == "bucket0--collection0.json"
-    assert changesets_zip_files[1][0] == "bucket1--collection1.json"
-    assert changesets_zip_files[2][0] == "bucket2--collection2.json"
-    assert changesets_zip_files[3][0] == "bucket3--collection3.json"
-    assert changesets_zip_files[4][0] == "bucket4--collection4.json"
-    assert changesets_zip_files[5][0] == "bucket5--collection5.json"
-    assert changesets_zip_files[6][0] == "preview-bucket5--collection5.json"
-
     # Assert the mozlz4 call
-    assert mock_write_json_mozlz4.call_count == 1  # startup.json.mozlz
+    assert mock_write_json_mozlz4.call_count == 2  # changesets.json.mozlz4 and startup.json.mozlz
     calls = mock_write_json_mozlz4.call_args_list
 
-    startup_mozlz4_path, startup_changesets = calls[0][0]
+    changesets_mozlz4_path, changesets_mozlz4 = calls[0][0]
+    assert changesets_mozlz4_path == "changesets.json.mozlz4"
+    assert len(changesets_mozlz4) == 7
+    assert changesets_mozlz4[0]["metadata"]["bucket"] == "bucket0"
+    assert changesets_mozlz4[0]["metadata"]["id"] == "collection0"
+    assert changesets_mozlz4[6]["metadata"]["bucket"] == "bucket6"
+    assert changesets_mozlz4[6]["metadata"]["id"] == "collection6"
+
+    startup_mozlz4_path, startup_changesets = calls[1][0]
     assert startup_mozlz4_path == "startup.json.mozlz4"
     assert len(startup_changesets) == 1
     assert startup_changesets[0]["metadata"]["bucket"] == "bucket5"
@@ -268,7 +264,7 @@ def test_build_bundles(
         "bundles",
         [
             "bucket1--collection1.zip",
-            "changesets.zip",
+            "changesets.json.mozlz4",
             "startup.json.mozlz4",
         ],
         [
