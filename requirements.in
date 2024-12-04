@@ -1,6 +1,6 @@
 backoff
 python-decouple
-kinto-http
+kinto-http>=11.7.0
 requests
 sentry_sdk
 google-cloud-storage

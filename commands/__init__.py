@@ -10,6 +10,7 @@ from requests.adapters import TimeoutSauce
 PARALLEL_REQUESTS = int(os.getenv("PARALLEL_REQUESTS", 4))
 REQUESTS_TIMEOUT_SECONDS = float(os.getenv("REQUESTS_TIMEOUT_SECONDS", 2))
 REQUESTS_NB_RETRIES = int(os.getenv("REQUESTS_NB_RETRIES", 4))
+DRY_MODE = os.getenv("DRY_RUN", "0") in "1yY"
 
 retry_timeout = backoff.on_exception(
     backoff.expo,
@@ -38,6 +39,7 @@ class KintoClient(kinto_http.Client):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("retry", REQUESTS_NB_RETRIES)
+        kwargs.setdefault("dry_mode", DRY_MODE)
         super().__init__(*args, **kwargs)
 
     @retry_timeout
@@ -57,20 +59,16 @@ class KintoClient(kinto_http.Client):
         return super().get_records_timestamp(*args, **kwargs)
 
     @retry_timeout
-    def get_changeset(self, bid, cid, expected):
-        url = f"{self.session.server_url}/buckets/{bid}/collections/{cid}/changeset?_expected={expected}"
-        resp = requests.get(url)
-        resp.raise_for_status()
-        changeset = resp.json()
-        return changeset
+    def get_changeset(self, *args, **kwargs):
+        return super().get_changeset(*args, **kwargs)
 
+    @retry_timeout
+    def approve_changes(self, *args, **kwargs):
+        return super().approve_changes(*args, **kwargs)
 
-def records_equal(a, b):
-    """Compare records, ignoring timestamps."""
-    ignored_fields = ("last_modified", "schema")
-    ra = {k: v for k, v in a.items() if k not in ignored_fields}
-    rb = {k: v for k, v in b.items() if k not in ignored_fields}
-    return ra == rb
+    @retry_timeout
+    def request_review(self, *args, **kwargs):
+        return super().request_review(*args, **kwargs)
 
 
 def call_parallel(func, args_list, max_workers=PARALLEL_REQUESTS):

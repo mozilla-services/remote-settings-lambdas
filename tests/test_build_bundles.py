@@ -64,7 +64,7 @@ def test_call_parallel():
 
 
 @responses.activate
-@patch("commands.build_bundles.random")
+@patch("kinto_http.client.random")
 def test_fetch_all_changesets(mock_random):
     mock_random.randint.return_value = 42
     changeset_url = (

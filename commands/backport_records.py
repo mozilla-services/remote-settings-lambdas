@@ -2,9 +2,9 @@ import json
 import os
 
 from decouple import config
+from kinto_http.utils import collection_diff
 
 from . import KintoClient as Client
-from . import records_equal
 
 
 def backport_records(event, context, **kwargs):
@@ -56,21 +56,10 @@ def backport_records(event, context, **kwargs):
     )
 
     source_records = source_client.get_records(**source_filters)
-    dest_records_by_id = {r["id"]: r for r in dest_client.get_records()}
+    dest_records = dest_client.get_records()
+    to_create, to_update, to_delete = collection_diff(source_records, dest_records)
 
-    # Create or update the destination records.
-    to_create = []
-    to_update = []
-    for r in source_records:
-        dest_record = dest_records_by_id.pop(r["id"], None)
-        if dest_record is None:
-            to_create.append(r)
-        elif not records_equal(r, dest_record):
-            to_update.append(r)
-    # Delete the records missing from source.
-    to_delete = dest_records_by_id.values()
-
-    is_behind = (len(to_create) + len(to_update) + len(to_delete)) > 0
+    is_behind = to_create or to_update or to_delete
     has_pending_changes = is_behind
     if not is_behind:
         # When this lambda is ran with a signed collection as
@@ -87,13 +76,11 @@ def backport_records(event, context, **kwargs):
     with dest_client.batch() as dest_batch:
         for r in to_create:
             dest_batch.create_record(data=r)
-        for r in to_update:
-            # Let the server assign a new timestamp.
-            del r["last_modified"]
+        for old, new in to_update:
             # Add some concurrency control headers (make sure the
             # destination record wasn't changed since we read it).
-            if_match = dest_record["last_modified"] if safe_headers else None
-            dest_batch.update_record(data=r, if_match=if_match)
+            if_match = old["last_modified"] if safe_headers else None
+            dest_batch.update_record(data=new, if_match=if_match)
         for r in to_delete:
             dest_batch.delete_record(id=r["id"])
 
@@ -126,9 +113,9 @@ def backport_records(event, context, **kwargs):
     )
     if has_autoapproval:
         # Approve the changes.
-        dest_client.patch_collection(data={"status": "to-sign"})
+        dest_client.approve_changes()
         print(f"Done. {ops_count} changes applied and signed.")
     else:
         # Request review.
-        dest_client.patch_collection(data={"status": "to-review"})
+        dest_client.request_review(message="r?")
         print(f"Done. Requested review for {ops_count} changes.")
