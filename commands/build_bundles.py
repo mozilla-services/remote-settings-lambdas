@@ -8,7 +8,6 @@ It then uploads these zip files to Google Cloud Storage.
 import io
 import json
 import os
-import random
 import tempfile
 import zipfile
 from email.utils import parsedate_to_datetime
@@ -40,15 +39,14 @@ def fetch_all_changesets(client):
     The result contains the metadata and all the records of all collections
     for both preview and main buckets.
     """
-    random_cache_bust = random.randint(999999000000, 999999999999)
-    monitor_changeset = client.get_changeset("monitor", "changes", random_cache_bust)
+    monitor_changeset = client.get_changeset("monitor", "changes", bust_cache=True)
     print("%s collections" % len(monitor_changeset["changes"]))
 
     args_list = [
         (c["bucket"], c["collection"], c["last_modified"]) for c in monitor_changeset["changes"]
     ]
     all_changesets = call_parallel(
-        lambda bid, cid, ts: client.get_changeset(bid, cid, ts), args_list
+        lambda bid, cid, ts: client.get_changeset(bid, cid, _expected=ts), args_list
     )
     return all_changesets
 
