@@ -217,9 +217,9 @@ idna==3.7 \
     --hash=sha256:028ff3aadf0609c1fd278d8ea3089299412a7a8b9bd005dd08b9f8285bcb5cfc \
     --hash=sha256:82fee1fc78add43492d3a1898bfa6d8a904cc97d8427f683ed8e798d07761aa0
     # via requests
-kinto-http==11.7.0 \
-    --hash=sha256:10613c60eb3ad609e00cb3b598eceecf57c7e0a7a889441c6e8c181fc85eca13 \
-    --hash=sha256:1eb658d68dfc94779db3c1683b72865f8d669db37364e51b1f3d23460577e029
+kinto-http==11.7.1 \
+    --hash=sha256:837ba12bea4eaafa8a4ce67730f8a40c9cf00c60f506ad42be03426c7236bc41 \
+    --hash=sha256:8e2cb010969c433bc65f7191e7b3314e214ecc5c035dd22d891d1cca27f821f0
     # via -r requirements.in
 lz4==4.3.3 \
     --hash=sha256:01fe674ef2889dbb9899d8a67361e0c4a2c833af5aeb37dd505727cf5d2a131e \
