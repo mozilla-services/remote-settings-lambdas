@@ -14,7 +14,7 @@ class TestSyncMegaphone(unittest.TestCase):
 
     def setUp(self):
         self.source_monitor_changes_uri = (
-            f"{self.server}/buckets/monitor/collections/changes/records"
+            f"{self.server}/buckets/monitor/collections/changes/changeset"
         )
         self.megaphone_broadcasts_uri = f"{self.megaphone_url}/broadcasts"
         self.megaphone_broadcast_uri = f"{self.megaphone_url}/broadcasts/{self.broadcast_id}"
@@ -34,7 +34,7 @@ class TestSyncMegaphone(unittest.TestCase):
             responses.GET,
             self.source_monitor_changes_uri,
             json={
-                "data": [
+                "changes": [
                     {
                         "id": "a",
                         "bucket": "main-preview",
@@ -78,7 +78,7 @@ class TestSyncMegaphone(unittest.TestCase):
             responses.GET,
             self.source_monitor_changes_uri,
             json={
-                "data": [
+                "changes": [
                     {
                         "id": "b",
                         "bucket": "main",
@@ -115,7 +115,7 @@ class TestSyncMegaphone(unittest.TestCase):
             responses.GET,
             self.source_monitor_changes_uri,
             json={
-                "data": [
+                "changes": [
                     {
                         "id": "a",
                         "bucket": "main",
