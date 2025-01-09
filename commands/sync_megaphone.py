@@ -1,6 +1,5 @@
 import logging
 import os
-import random
 
 import requests.auth
 
@@ -52,14 +51,14 @@ class Megaphone:
 
 def get_remotesettings_timestamp(uri):
     client = KintoClient(server_url=uri)
-    random_cache_bust = random.randint(999999000000, 999999999999)
-    entries = client.get_records(
-        bucket="monitor", collection="changes", _expected=random_cache_bust
+    changeset = client.get_changeset(bucket="monitor", collection="changes", bust_cache=True)
+    # We want to filter out preview entries, because we don't want to notify all clients
+    # when a review is requested. Therefore we can't use the `timestamp` field and must
+    # get it from filtered entries.
+    # https://github.com/mozilla/remote-settings/blob/45841c04/kinto-remote-settings/src/kinto_remote_settings/changes/views.py#L40-L44
+    return str(
+        max(e["last_modified"] for e in changeset["changes"] if "preview" not in e["bucket"])
     )
-    # Some collections are excluded (eg. preview)
-    # https://github.com/mozilla-services/cloudops-deployment/blob/master/projects/kinto/puppet/modules/kinto/templates/kinto.ini.erb
-    matched = [e for e in entries if "preview" not in e["bucket"]]
-    return str(matched[0]["last_modified"])
 
 
 def sync_megaphone(event, context):
