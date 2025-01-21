@@ -173,7 +173,7 @@ def build_bundles(event, context):
             f"{base_url}{DESTINATION_FOLDER}/{bid}--{cid}.zip"
         )
         print(f"'{bid}--{cid}.zip' was modified at {existing_bundle_timestamp}")
-        print(f"Latest change on {bid}/{cid} was at {changeset["timestamp"]}")
+        print(f"Latest change on {bid}/{cid} was at {changeset['timestamp']}")
         if not BUILD_ALL and changeset["timestamp"] < existing_bundle_timestamp:
             # Collection hasn't changed since last bundling.
             print(f"{bid}/{cid} hasn't changed since last bundle.")
@@ -197,11 +197,11 @@ def build_bundles(event, context):
         print(f"Attachments total size {total_size_mb:.2f}MB")
 
         # Fetch all attachments and build "{bid}--{cid}.zip"
-        args_list = [(f'{base_url}{r["attachment"]["location"]}',) for r in records]
+        args_list = [(f"{base_url}{r['attachment']['location']}",) for r in records]
         all_attachments = call_parallel(fetch_attachment, args_list)
         write_zip(
             attachments_bundle_filename,
-            [(f'{record["id"]}.meta.json', json.dumps(record)) for record in records]
+            [(f"{record['id']}.meta.json", json.dumps(record)) for record in records]
             + [(record["id"], attachment) for record, attachment in zip(records, all_attachments)],
         )
         bundles_to_upload.append(attachments_bundle_filename)
