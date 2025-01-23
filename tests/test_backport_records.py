@@ -1,6 +1,7 @@
 import json
 import unittest
 
+import pytest
 import responses
 
 from commands.backport_records import backport_records
@@ -272,3 +273,60 @@ class TestRecordsBackport(unittest.TestCase):
         assert responses.calls[5].request.url.endswith(self.dest_collection_uri)
         sign_request = json.loads(responses.calls[5].request.body)
         assert sign_request == {"data": {"status": "to-sign"}}
+
+
+@pytest.mark.parametrize(
+    "mapping_env, expected_calls",
+    [
+        (
+            "ws/scid?field=value&key=data -> main/cid",
+            [("ws", "scid", {"field": "value", "key": "data"}, "main", "cid")],
+        ),
+        (
+            "ws/scid?key1=value1&key2=value2&key2=value3 -> main/cid",
+            [("ws", "scid", {"key1": "value1", "key2": ["value2", "value3"]}, "main", "cid")],
+        ),
+        (
+            "ws/scid1 -> main/cid1\nws/scid2 -> main/cid2",
+            [("ws", "scid1", {}, "main", "cid1"), ("ws", "scid2", {}, "main", "cid2")],
+        ),
+    ],
+)
+def test_correct_multiline_mappings(mapping_env, expected_calls):
+    with unittest.mock.patch("commands.backport_records.execute_backport") as mocked:
+        backport_records(
+            event={
+                "server": "http://server",
+                "backport_records_source_auth": "admin:admin",
+                "backport_records_mappings": mapping_env,
+            },
+            context=None,
+        )
+        for expected_params in expected_calls:
+            mocked.assert_any_call(
+                unittest.mock.ANY,
+                unittest.mock.ANY,
+                unittest.mock.ANY,
+                unittest.mock.ANY,
+                *expected_params,
+            )
+
+
+@pytest.mark.parametrize(
+    "mapping_env",
+    [
+        "ws-scid -> main/cid",
+        "ws-scid --> main/cid",
+    ],
+)
+def test_incorrect_multiline_mappings(mapping_env):
+    with unittest.mock.patch("commands.backport_records.execute_backport"):
+        with pytest.raises(ValueError):
+            backport_records(
+                event={
+                    "server": "http://server",
+                    "backport_records_source_auth": "admin:admin",
+                    "backport_records_mappings": mapping_env,
+                },
+                context=None,
+            )
